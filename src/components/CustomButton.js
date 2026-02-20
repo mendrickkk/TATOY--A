@@ -1,3 +1,4 @@
+
 import { Text, TouchableOpacity, View } from 'react-native';
 
 const CustomButton = ({ containerStyle, textStyle, label, onPress }) => {
@@ -19,3 +20,5 @@ const CustomButton = ({ containerStyle, textStyle, label, onPress }) => {
 };
 
 export default CustomButton;
+
+
