@@ -1,21 +1,22 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {View} from 'react-native';
+import {Provider} from 'react-redux';
+
+import rootSaga from './src/app/sagas';
+import configureStore from './src/app/reducers';
 import AppNav from './src/navigation';
 
-function App() {
-  return (
-    <SafeAreaProvider style={styles.container}>
-      <AppNav />
-    </SafeAreaProvider>
-  );
-}
+const {store, runSaga} = configureStore();
+runSaga(rootSaga);
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
+const App = () => {
+  return (
+    <Provider store={store}>
+      <View style={{flex: 1}}>
+        <AppNav />
+      </View>
+    </Provider>
+  );
+};
 
 export default App;

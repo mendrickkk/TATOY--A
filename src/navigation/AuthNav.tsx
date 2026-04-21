@@ -1,11 +1,11 @@
-import { createStackNavigator } from '@react-navigation/stack';
-import { ROUTES } from '../utils';
+import {createStackNavigator} from '@react-navigation/stack';
 
-// screens
+import {ROUTES} from '../utils';
 import Login from '../screens/auth/Login';
 import Register from '../screens/auth/Register';
+import type {RootStackParamList} from './types';
 
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
 
 const AuthNavigation = () => {
   return (
