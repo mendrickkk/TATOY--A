@@ -3,19 +3,24 @@ import {Alert, Image, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
 import type {StackNavigationProp} from '@react-navigation/stack';
+import {GoogleSigninButton} from '@react-native-google-signin/google-signin';
+
 
 import CustomButton from '../../components/CustomButton';
 import CustomTextInput from '../../components/CustomTextInput';
 import {IMG, ROUTES} from '../../utils';
-import {authLogin} from '../../app/actions';
+import {authLogin, USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {RootState} from '../../app/reducers';
 import type {RootStackParamList} from '../../navigation/types';
+import sign_in_with_google from '../../utils/firebase';
+import {showSuccess} from '../../components/alert_messages';
 
 type NavProp = StackNavigationProp<RootStackParamList>;
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const navigation = useNavigation<NavProp>();
   const dispatch = useDispatch();
@@ -102,6 +107,48 @@ const Login = () => {
               password,
             }),
           );
+        }}
+      />
+
+      <GoogleSigninButton
+        style={{width: '85%', height: 48, marginBottom: 10}}
+        size={GoogleSigninButton.Size.Wide}
+        color={GoogleSigninButton.Color.Light}
+        disabled={isGoogleLoading}
+        onPress={async () => {
+          if (isGoogleLoading) {
+            return;
+          }
+
+          setIsGoogleLoading(true);
+          try {
+            const response = await sign_in_with_google();
+            if (!response) {
+              return;
+            }
+
+            dispatch({
+              type: USER_LOGIN_COMPLETE,
+              payload: {
+                provider: 'google',
+                userInfo: response.userInfo,
+              },
+            });
+
+            showSuccess({
+              title: 'Google Sign-In successful',
+              message: 'Welcome back!',
+              type: 'success',
+              position: 'top',
+              visibilityTime: 3000,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : 'Google sign-in failed';
+            Alert.alert('Google sign-in failed', message);
+          } finally {
+            setIsGoogleLoading(false);
+          }
         }}
       />
 
