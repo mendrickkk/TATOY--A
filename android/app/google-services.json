@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "674321333887",
+    "project_id": "tatoy-4ce23",
+    "storage_bucket": "tatoy-4ce23.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674321333887:android:f074c0e929fd370941094a",
+        "android_client_info": {
+          "package_name": "com.tatoy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "674321333887-hhmau6vpig15hqln38ubrpo5s1k9ljja.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tatoy",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "674321333887-pam2k7o27gvis9hcjsmu58rei8unef2j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDlASA8srh9xEfZevygQ8BYzXBLYIJc7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "674321333887-pam2k7o27gvis9hcjsmu58rei8unef2j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
