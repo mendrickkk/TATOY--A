@@ -15,6 +15,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {authLogout} from '../app/actions';
 import type {RootState} from '../app/reducers';
 import AppHeader from '../components/AppHeader';
+import HeroCarousel from '../components/HeroCarousel';
 import ShopSearchBar from '../components/ShopSearchBar';
 import type {RootStackParamList} from '../navigation/types';
 import {BRAND, ROUTES} from '../utils';
@@ -59,11 +60,8 @@ const HomeScreen = () => {
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.placeholderTitle}>Shop</Text>
-        <Text style={styles.placeholderMuted}>
-          Product listings will go here in the next step.
-        </Text>
-
+        <HeroCarousel />
+        <View style={styles.bodySpacer} />
         <View style={styles.secondaryRow}>
           <TouchableOpacity
             onPress={() => navigation.navigate(ROUTES.PROFILE)}
@@ -101,26 +99,19 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 24,
+    alignItems: 'stretch',
   },
-  placeholderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-  },
-  placeholderMuted: {
-    marginTop: 8,
-    fontSize: 15,
-    color: '#777777',
-    textAlign: 'center',
-    maxWidth: 320,
+  bodySpacer: {
+    flex: 1,
+    minHeight: 8,
   },
   secondaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 28,
+    alignSelf: 'center',
     gap: 10,
   },
   link: {
