@@ -1,6 +1,7 @@
 import React from 'react';
 import {View} from 'react-native';
 import {Provider} from 'react-redux';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import rootSaga from './src/app/sagas';
 import configureStore from './src/app/reducers';
@@ -16,10 +17,12 @@ runSaga(rootSaga);
 const App = () => {
   return (
     <Provider store={store}>
-      <View style={{flex: 1}}>
-        <AppNav />
-        <Toast config={toastConfig} />
-      </View>
+      <SafeAreaProvider>
+        <View style={{flex: 1}}>
+          <AppNav />
+          <Toast config={toastConfig} />
+        </View>
+      </SafeAreaProvider>
     </Provider>
   );
 };
