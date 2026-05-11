@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Platform,
@@ -16,6 +17,7 @@ import type {StackNavigationProp} from '@react-navigation/stack';
 import {GoogleSigninButton} from '@react-native-google-signin/google-signin';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
+import {userRegister} from '../../app/api/auth';
 import {IMG, ROUTES} from '../../utils';
 import {USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {RootStackParamList} from '../../navigation/types';
@@ -40,11 +42,12 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigation = useNavigation<NavProp>();
   const dispatch = useDispatch();
 
-  const onRegister = () => {
+  const onRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       Alert.alert('Missing fields', 'Please fill in your first name, last name, and email.');
       return;
@@ -57,9 +60,37 @@ const Register = () => {
       Alert.alert('Password mismatch', 'Password and confirm password must match.');
       return;
     }
+    if (password.length < 6) {
+      Alert.alert('Invalid password', 'Password must be at least 6 characters.');
+      return;
+    }
 
-    Alert.alert('Success', 'Registration complete');
-    navigation.navigate(ROUTES.LOGIN);
+    const trimmedEmail = email.trim();
+    // Backend requires `username`; login uses email in the username field — keep them aligned.
+    const username = trimmedEmail;
+
+    setIsSubmitting(true);
+    try {
+      const data = (await userRegister({
+        username,
+        email: trimmedEmail,
+        password,
+      })) as {message?: string};
+
+      const message =
+        typeof data?.message === 'string' && data.message.length > 0
+          ? data.message
+          : 'Registration complete. You can sign in after verifying your email if required.';
+
+      Alert.alert('Success', message, [
+        {text: 'OK', onPress: () => navigation.navigate(ROUTES.LOGIN)},
+      ]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      Alert.alert('Registration failed', message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -155,15 +186,23 @@ const Register = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={onRegister}>
-            <Text style={styles.primaryButtonText}>CREATE MY ACCOUNT</Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]}
+            onPress={() => void onRegister()}
+            disabled={isSubmitting}
+            accessibilityState={{disabled: isSubmitting}}>
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>CREATE MY ACCOUNT</Text>
+            )}
           </TouchableOpacity>
 
           <GoogleSigninButton
             style={styles.googleButton}
             size={GoogleSigninButton.Size.Wide}
             color={GoogleSigninButton.Color.Light}
-            disabled={isGoogleLoading}
+            disabled={isGoogleLoading || isSubmitting}
             onPress={async () => {
               if (isGoogleLoading) {
                 return;
@@ -297,6 +336,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 8,
     marginBottom: 16,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.65,
   },
   primaryButtonText: {
     color: '#FFFFFF',
