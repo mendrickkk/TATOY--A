@@ -1,55 +1,138 @@
-import {useNavigation} from '@react-navigation/native';
+import React, {useCallback} from 'react';
+import {
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
-import {Image, Text, TouchableOpacity, View} from 'react-native';
-import {useDispatch} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useDispatch, useSelector} from 'react-redux';
 
 import {authLogout} from '../app/actions';
+import type {RootState} from '../app/reducers';
+import AppHeader from '../components/AppHeader';
+import ShopSearchBar from '../components/ShopSearchBar';
 import type {RootStackParamList} from '../navigation/types';
-import {IMG, ROUTES} from '../utils';
+import {BRAND, ROUTES} from '../utils';
+import {getUserDisplayName} from '../utils/userDisplayName';
 
 type NavProp = StackNavigationProp<RootStackParamList>;
+
+const DEMO_BADGE: number | boolean = true;
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavProp>();
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
+  const auth = useSelector((state: RootState) => state.auth);
+  const displayName = getUserDisplayName(auth.data);
+  const heroContainerStyle = [styles.hero, {paddingTop: Math.max(insets.top, 12)}];
+
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(BRAND.maroonPrimary);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#ffffff');
+        }
+      };
+    }, []),
+  );
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 3,
-        borderColor: 'red',
-      }}>
-      <Image source={IMG.LOGO} style={{width: 320, height: 100}} />
-      <Text style={{fontSize: 20}}>HomeScreen</Text>
+    <View style={styles.screen}>
+      <View style={heroContainerStyle}>
+        <AppHeader
+          userDisplayName={displayName}
+          onPressNotifications={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
+          notificationBadge={DEMO_BADGE}
+        />
+        <ShopSearchBar style={styles.searchSpacing} />
+      </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate(ROUTES.PROFILE)}>
-        <View
-          style={{
-            backgroundColor: 'green',
-            padding: 10,
-            borderRadius: 20,
-            marginTop: 20,
-          }}>
-          <Text style={{fontSize: 24, color: 'white'}}>VISIT PROFILE</Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.body}>
+        <Text style={styles.placeholderTitle}>Shop</Text>
+        <Text style={styles.placeholderMuted}>
+          Product listings will go here in the next step.
+        </Text>
 
-      <TouchableOpacity onPress={() => dispatch(authLogout())}>
-        <View
-          style={{
-            backgroundColor: 'red',
-            padding: 10,
-            borderRadius: 20,
-            marginTop: 20,
-          }}>
-          <Text style={{fontSize: 24, color: 'white'}}>LOG OUT</Text>
+        <View style={styles.secondaryRow}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate(ROUTES.PROFILE)}
+            accessibilityRole="button"
+            accessibilityLabel="Open profile">
+            <Text style={styles.link}>Profile</Text>
+          </TouchableOpacity>
+          <Text style={styles.sep}>·</Text>
+          <TouchableOpacity
+            onPress={() => dispatch(authLogout())}
+            accessibilityRole="button"
+            accessibilityLabel="Log out">
+            <Text style={styles.link}>Log out</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: BRAND.pageMutedBg,
+  },
+  hero: {
+    backgroundColor: BRAND.maroonPrimary,
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+  },
+  searchSpacing: {
+    marginTop: 14,
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    alignItems: 'center',
+  },
+  placeholderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  placeholderMuted: {
+    marginTop: 8,
+    fontSize: 15,
+    color: '#777777',
+    textAlign: 'center',
+    maxWidth: 320,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 28,
+    gap: 10,
+  },
+  link: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: BRAND.maroonPrimary,
+    textDecorationLine: 'underline',
+  },
+  sep: {
+    fontSize: 18,
+    color: '#aaaaaa',
+  },
+});
 
 export default HomeScreen;

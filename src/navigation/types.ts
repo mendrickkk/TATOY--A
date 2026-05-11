@@ -5,4 +5,5 @@ export type RootStackParamList = {
   [ROUTES.REGISTER]: undefined;
   [ROUTES.HOME]: undefined;
   [ROUTES.PROFILE]: undefined;
+  [ROUTES.NOTIFICATIONS]: undefined;
 };
