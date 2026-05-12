@@ -7,4 +7,8 @@ export const BRAND = {
   searchSurface: '#ffffff',
   pageMutedBg: '#f2f2f2',
   iconTint: '#6e0f0f',
+  /** Behind product thumbnails (horizontal rail — reference mockup) */
+  productTileBg: '#ebe6f7',
+  productTitle: '#111111',
+  productPriceBold: '#111111',
 } as const;

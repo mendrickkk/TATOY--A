@@ -22,7 +22,8 @@ type LoginError = Error & {
   payload: unknown;
 };
 
-const REQUEST_TIMEOUT_MS = 10000;
+/** Shared by auth and other API modules (e.g. products). */
+export const REQUEST_TIMEOUT_MS = 10000;
 
 /**
  * Physical device on the same Wi‑Fi as your PC: set your computer’s LAN IP, e.g.
@@ -31,7 +32,7 @@ const REQUEST_TIMEOUT_MS = 10000;
  */
 export const EXTRA_DEV_API_BASE_URL = '';
 
-function getApiBaseCandidates(): string[] {
+export function getApiBaseCandidates(): string[] {
   const extra = EXTRA_DEV_API_BASE_URL.trim().replace(/\/$/, '');
   const defaults =
     Platform.OS === 'android'
@@ -44,7 +45,7 @@ function getApiBaseCandidates(): string[] {
   return [extra, ...rest];
 }
 
-function normalizeFetchConnectionError(err: Error): Error {
+export function normalizeFetchConnectionError(err: Error): Error {
   const msg = err.message || '';
   if (msg === 'Network request failed' || msg.includes('Network request failed')) {
     return new Error(
@@ -141,7 +142,7 @@ export async function userLogin({
     let rawText = '';
     try {
       rawText = await response.text();
-    } catch (_) {
+    } catch {
       rawText = '';
     }
 
@@ -227,7 +228,7 @@ export async function userRegister({
     let rawText = '';
     try {
       rawText = await response.text();
-    } catch (_) {
+    } catch {
       rawText = '';
     }
 
