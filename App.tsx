@@ -1,5 +1,6 @@
 import React from 'react';
-import {View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {Provider} from 'react-redux';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
@@ -16,15 +17,23 @@ runSaga(rootSaga);
 
 const App = () => {
   return (
-    <Provider store={store}>
-      <SafeAreaProvider>
-        <View style={{flex: 1}}>
-          <AppNav />
-          <Toast config={toastConfig} />
-        </View>
-      </SafeAreaProvider>
-    </Provider>
+    <GestureHandlerRootView style={styles.appRoot}>
+      <Provider store={store}>
+        <SafeAreaProvider>
+          <View style={styles.appRoot}>
+            <AppNav />
+            <Toast config={toastConfig} />
+          </View>
+        </SafeAreaProvider>
+      </Provider>
+    </GestureHandlerRootView>
   );
 };
 
 export default App;
+
+const styles = StyleSheet.create({
+  appRoot: {
+    flex: 1,
+  },
+});

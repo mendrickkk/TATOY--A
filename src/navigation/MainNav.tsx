@@ -1,8 +1,10 @@
 import {createStackNavigator} from '@react-navigation/stack';
 
-import {ROUTES} from '../utils';
+import {BRAND, ROUTES} from '../utils';
 import HomeScreen from '../screens/HomeScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import PopularBouquetsScreen from '../screens/PopularBouquetsScreen';
+import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import type {RootStackParamList} from './types';
 
@@ -21,6 +23,21 @@ const MainNavigation = () => {
         name={ROUTES.NOTIFICATIONS}
         component={NotificationsScreen}
         options={{title: 'Notifications'}}
+      />
+      <Stack.Screen
+        name={ROUTES.PRODUCT_DETAIL}
+        component={ProductDetailScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name={ROUTES.POPULAR_BOUQUETS}
+        component={PopularBouquetsScreen}
+        options={{
+          title: 'Popular bouquets',
+          headerTintColor: BRAND.maroonPrimary,
+          headerTitleStyle: {fontWeight: '700', color: BRAND.productTitle},
+          headerShadowVisible: false,
+        }}
       />
     </Stack.Navigator>
   );

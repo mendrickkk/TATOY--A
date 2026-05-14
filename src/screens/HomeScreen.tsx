@@ -1,9 +1,9 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -133,32 +133,46 @@ const HomeScreen = () => {
     [dispatch, navigation],
   );
 
+  const openProductDetail = useCallback(
+    (item: Product) => {
+      navigation.navigate(ROUTES.PRODUCT_DETAIL, {
+        product: item,
+        apiBaseUrl,
+        relatedProducts: products,
+      });
+    },
+    [apiBaseUrl, navigation, products],
+  );
+
   const renderProductTile = useCallback(
     ({item}: {item: Product}) => {
       const uri = getProductImageUri(apiBaseUrl, item.image);
       return (
-        <TouchableOpacity
-          style={styles.tileWrap}
-          activeOpacity={0.85}
+        <Pressable
+          style={({pressed}) => [styles.tileWrap, pressed && styles.tilePressed]}
           accessibilityRole="button"
-          accessibilityLabel={`${item.name}, ${priceFormatter.format(item.price)}`}>
+          accessibilityLabel={`${item.name}, ${priceFormatter.format(item.price)}`}
+          onPress={() => openProductDetail(item)}
+          android_ripple={{color: 'rgba(110, 15, 15, 0.12)', borderless: false}}>
           <View style={styles.tileImageShell}>
             {uri ? (
-              <Image
-                source={{uri}}
-                style={styles.tileImage}
-                resizeMode="cover"
-                accessibilityLabel={item.name}
-              />
+              <View style={styles.tileImage} pointerEvents="none">
+                <Image
+                  source={{uri}}
+                  style={StyleSheet.absoluteFillObject}
+                  resizeMode="cover"
+                  accessibilityLabel={item.name}
+                />
+              </View>
             ) : (
               <View style={[styles.tileImage, styles.tileImagePlaceholder]} />
             )}
           </View>
           <Text style={styles.tilePrice}>{priceFormatter.format(item.price)}</Text>
-        </TouchableOpacity>
+        </Pressable>
       );
     },
-    [apiBaseUrl],
+    [apiBaseUrl, openProductDetail],
   );
 
   const productRail = useMemo(() => {
@@ -193,15 +207,19 @@ const HomeScreen = () => {
       );
     }
     return (
-      <FlatList
+      <ScrollView
         horizontal
-        data={products}
-        keyExtractor={item => item.id}
-        renderItem={renderProductTile}
+        nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.railContent}
-        ItemSeparatorComponent={() => <View style={styles.railSep} />}
-      />
+        contentContainerStyle={styles.railScrollContent}
+        keyboardShouldPersistTaps="always">
+        {products.map((item, index) => (
+          <React.Fragment key={`${item.id}-${index}`}>
+            {index > 0 ? <View style={styles.railSep} /> : null}
+            {renderProductTile({item})}
+          </React.Fragment>
+        ))}
+      </ScrollView>
     );
   }, [error, loading, loadProducts, products, renderProductTile]);
 
@@ -210,6 +228,7 @@ const HomeScreen = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         nestedScrollEnabled
+        keyboardShouldPersistTaps="always"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -224,6 +243,12 @@ const HomeScreen = () => {
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitlePopular}>Popular bouquets</Text>
             <TouchableOpacity
+              onPress={() =>
+                navigation.navigate(ROUTES.POPULAR_BOUQUETS, {
+                  products: products.length > 0 ? products : undefined,
+                  apiBaseUrl: apiBaseUrl.trim() ? apiBaseUrl : undefined,
+                })
+              }
               accessibilityRole="button"
               accessibilityLabel="See all bouquets"
               hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
@@ -281,12 +306,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: BRAND.maroonPrimary,
   },
-  railContent: {
-    paddingRight: 16,
+  railScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingRight: 4,
     paddingBottom: 4,
   },
   railSep: {
     width: 14,
+  },
+  tilePressed: {
+    opacity: 0.92,
   },
   railState: {
     minHeight: 160,

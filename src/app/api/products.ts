@@ -110,6 +110,51 @@ async function fetchProductsOnce(
   });
 }
 
+export type FetchProductByIdResult = {
+  product: Product;
+  baseUrl: string;
+};
+
+/**
+ * Builds `/api/products/{id}` (or preserves an existing `/api/products/...` suffix) for the given base URL.
+ * Handles JSON-LD `@id` values that are absolute URLs or path-only IRIs.
+ */
+export function productItemApiPath(productId: string): string {
+  const t = productId.trim();
+  if (/^https?:\/\//i.test(t)) {
+    const pathMatch = t.match(/^https?:\/\/[^/]+(\/api\/products\/[^/?#]+)/i);
+    if (pathMatch?.[1]) {
+      return pathMatch[1];
+    }
+  }
+  const withoutQuery = (t.split('?')[0] ?? t).trim();
+  const match = withoutQuery.match(/(\/api\/products\/[^/]+)\/?$/);
+  if (match) {
+    return match[1];
+  }
+  const slug = withoutQuery.replace(/^\/+/, '');
+  return `/api/products/${slug}`;
+}
+
+async function fetchProductByIdOnce(
+  baseUrl: string,
+  path: string,
+  accept: string,
+  signal: AbortSignal,
+  authHeader: string | undefined,
+): Promise<Response> {
+  const headers: Record<string, string> = {Accept: accept};
+  if (authHeader) {
+    headers.Authorization = authHeader;
+  }
+  const root = baseUrl.replace(/\/$/, '');
+  return fetch(`${root}${path}`, {
+    method: 'GET',
+    headers,
+    signal,
+  });
+}
+
 /**
  * Builds a URL the `Image` component can load.
  * - Absolute `http(s)` → unchanged.
@@ -256,6 +301,101 @@ export async function fetchProducts(
     }
 
     const message = apiErrorMessageFromBody(data, 'Could not load products');
+    const statusSuffix = response.status ? ` (HTTP ${response.status})` : '';
+    throw new Error(`${message}${statusSuffix}`);
+  }
+
+  throw (
+    lastConnectionError ||
+    new Error('Connection failed. Check that the server is running and reachable.')
+  );
+}
+
+/**
+ * Loads a single product (API Platform item operation). Tries each dev base URL like {@link fetchProducts}.
+ */
+export async function fetchProductById(
+  productId: string,
+  getToken?: () => string | null,
+): Promise<FetchProductByIdResult> {
+  const path = productItemApiPath(productId);
+  let lastConnectionError: Error | null = null;
+
+  for (const baseUrl of getApiBaseCandidates()) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    const run = async (accept: string): Promise<{response: Response; rawText: string}> => {
+      const token = getToken?.() ?? null;
+      const authHeader = token ? `Bearer ${token}` : undefined;
+      let response = await fetchProductByIdOnce(
+        baseUrl,
+        path,
+        accept,
+        controller.signal,
+        authHeader,
+      );
+
+      if (response.status === 401 && !authHeader) {
+        const retryToken = getToken?.() ?? null;
+        if (retryToken) {
+          response = await fetchProductByIdOnce(
+            baseUrl,
+            path,
+            accept,
+            controller.signal,
+            `Bearer ${retryToken}`,
+          );
+        }
+      }
+
+      let rawText = '';
+      try {
+        rawText = await response.text();
+      } catch {
+        rawText = '';
+      }
+      return {response, rawText};
+    };
+
+    let response: Response;
+    let rawText: string;
+
+    try {
+      ({response, rawText} = await run('application/json'));
+      if (response.status === 406) {
+        ({response, rawText} = await run('application/ld+json'));
+      }
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === 'AbortError') {
+        lastConnectionError = new Error(
+          `Connection timed out reaching ${baseUrl}. Check that the server is running and reachable.`,
+        );
+      } else if (err instanceof Error) {
+        lastConnectionError = normalizeFetchConnectionError(err);
+      } else {
+        lastConnectionError = new Error('Connection failed');
+      }
+      continue;
+    }
+    clearTimeout(timeoutId);
+
+    const data = parseJsonResponse(rawText);
+
+    if (response.ok) {
+      const product = normalizeUnknownToProduct(data);
+      if (!product) {
+        throw new Error('Could not parse product response');
+      }
+      return {product, baseUrl};
+    }
+
+    if (response.status === 404) {
+      throw new Error('Product not found');
+    }
+
+    const message = apiErrorMessageFromBody(data, 'Could not load product');
     const statusSuffix = response.status ? ` (HTTP ${response.status})` : '';
     throw new Error(`${message}${statusSuffix}`);
   }
