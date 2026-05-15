@@ -1,68 +1,180 @@
-import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback} from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
+import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {authLogout} from '../app/actions';
 import type {RootState} from '../app/reducers';
-import {BRAND} from '../utils';
-import {getUserDisplayName} from '../utils/userDisplayName';
+import {
+  IconProfileLock,
+  IconProfileLogout,
+  IconProfileOrders,
+  IconProfilePerson,
+  IconProfileWishlist,
+} from '../components/ProfileMenuIcons';
+import type {ProfileStackParamList} from '../navigation/types';
+import {getAuthProfileFields} from '../utils/authProfile';
+import {BRAND, ROUTES} from '../utils';
+
+type NavProp = StackNavigationProp<ProfileStackParamList, typeof ROUTES.PROFILE>;
+
+type MenuItem = {
+  key: string;
+  label: string;
+  Icon: React.ComponentType<{color: string; size?: number}>;
+  onPress: () => void;
+};
 
 const ProfileScreen = () => {
-  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavProp>();
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const auth = useSelector((state: RootState) => state.auth);
-  const displayName = getUserDisplayName(auth.data);
+  const {displayName, avatarInitial} = getAuthProfileFields(auth.data);
+
+  const onChangePassword = useCallback(() => {
+    Alert.alert('Change Password', 'Coming soon');
+  }, []);
+
+  const onSignOut = useCallback(() => {
+    dispatch(authLogout());
+  }, [dispatch]);
+
+  const menuItems: MenuItem[] = [
+    {
+      key: 'info',
+      label: 'Profile Info',
+      Icon: IconProfilePerson,
+      onPress: () => navigation.navigate(ROUTES.PROFILE_INFO),
+    },
+    {
+      key: 'orders',
+      label: 'My Orders',
+      Icon: IconProfileOrders,
+      onPress: () => navigation.navigate(ROUTES.MY_ORDERS),
+    },
+    {
+      key: 'wishlist',
+      label: 'My Wishlist',
+      Icon: IconProfileWishlist,
+      onPress: () => navigation.navigate(ROUTES.MY_WISHLIST),
+    },
+    {
+      key: 'password',
+      label: 'Change Password',
+      Icon: IconProfileLock,
+      onPress: onChangePassword,
+    },
+    {
+      key: 'logout',
+      label: 'Sign out',
+      Icon: IconProfileLogout,
+      onPress: onSignOut,
+    },
+  ];
 
   return (
-    <View style={[styles.root, {paddingTop: Math.max(insets.top, 16)}]}>
-      <Text style={styles.title}>Profile</Text>
-      <Text style={styles.name}>{displayName || 'Signed in'}</Text>
-      <Text style={styles.hint}>Account settings and orders will appear here.</Text>
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={() => dispatch(authLogout())}
-        accessibilityRole="button"
-        accessibilityLabel="Log out">
-        <Text style={styles.logoutText}>Log out</Text>
-      </TouchableOpacity>
-    </View>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.content,
+        {paddingTop: Math.max(insets.top, 20), paddingBottom: insets.bottom + 24},
+      ]}
+      showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <View style={styles.avatar} accessibilityLabel={`Avatar ${avatarInitial}`}>
+          <Text style={styles.avatarLetter}>{avatarInitial}</Text>
+        </View>
+        <Text style={styles.displayName}>{displayName}</Text>
+      </View>
+
+      <View style={styles.menuCard}>
+        {menuItems.map((item, index) => (
+          <View key={item.key}>
+            {index > 0 ? <View style={styles.separator} /> : null}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={item.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}>
+              <item.Icon color={BRAND.maroonPrimary} size={22} />
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 22,
+  header: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: BRAND.maroonPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  avatarLetter: {
+    fontSize: 36,
     fontWeight: '700',
-    color: BRAND.maroonPrimary,
-    marginBottom: 8,
+    color: '#ffffff',
   },
-  name: {
-    fontSize: 18,
-    fontWeight: '600',
+  displayName: {
+    fontSize: 20,
+    fontWeight: '700',
     color: BRAND.productTitle,
-    marginBottom: 8,
+    textAlign: 'center',
   },
-  hint: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#6b7280',
-    marginBottom: 24,
+  menuCard: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e5e7eb',
   },
-  logoutBtn: {
-    alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 14,
   },
-  logoutText: {
+  menuLabel: {
+    flex: 1,
     fontSize: 16,
-    fontWeight: '600',
-    color: BRAND.maroonPrimary,
+    fontWeight: '500',
+    color: BRAND.productTitle,
+  },
+  chevron: {
+    fontSize: 22,
+    color: '#9ca3af',
+    fontWeight: '300',
+    marginRight: 4,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e5e7eb',
   },
 });
 

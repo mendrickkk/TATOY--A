@@ -12,9 +12,9 @@ import {
 } from '../components/TabBarIcons';
 import CartScreen from '../screens/CartScreen';
 import FavoriteScreen from '../screens/FavoriteScreen';
-import ProfileScreen from '../screens/ProfileScreen';
 import {BRAND, ROUTES} from '../utils';
 import HomeStack from './HomeStack';
+import ProfileStack from './ProfileStack';
 import type {MainTabParamList} from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -91,7 +91,7 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name={ROUTES.TAB_PROFILE}
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({focused, color, size}) => (
