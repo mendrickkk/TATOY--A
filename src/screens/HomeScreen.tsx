@@ -15,9 +15,8 @@ import {
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useDispatch, useSelector} from 'react-redux';
+import {useSelector} from 'react-redux';
 
-import {authLogout} from '../app/actions';
 import {extractBearerJwtFromAuthData, fetchProducts, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import AppHeader from '../components/AppHeader';
@@ -40,7 +39,6 @@ const priceFormatter = new Intl.NumberFormat('en-PH', {
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavProp>();
-  const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const auth = useSelector((state: RootState) => state.auth);
   const displayName = getUserDisplayName(auth.data);
@@ -109,29 +107,6 @@ const HomeScreen = () => {
       </View>
     );
   }, [displayName, insets.top, navigation]);
-
-  const listFooter = useMemo(
-    () => (
-      <View style={styles.footerWrap}>
-        <View style={styles.secondaryRow}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate(ROUTES.PROFILE)}
-            accessibilityRole="button"
-            accessibilityLabel="Open profile">
-            <Text style={styles.link}>Profile</Text>
-          </TouchableOpacity>
-          <Text style={styles.sep}>·</Text>
-          <TouchableOpacity
-            onPress={() => dispatch(authLogout())}
-            accessibilityRole="button"
-            accessibilityLabel="Log out">
-            <Text style={styles.link}>Log out</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    ),
-    [dispatch, navigation],
-  );
 
   const openProductDetail = useCallback(
     (item: Product) => {
@@ -257,7 +232,6 @@ const HomeScreen = () => {
           </View>
           {productRail}
         </View>
-        {listFooter}
       </ScrollView>
     </View>
   );
@@ -376,26 +350,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#333333',
-  },
-  footerWrap: {
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  secondaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    gap: 10,
-  },
-  link: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.maroonPrimary,
-    textDecorationLine: 'underline',
-  },
-  sep: {
-    fontSize: 18,
-    color: '#aaaaaa',
   },
 });
 

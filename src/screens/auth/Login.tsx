@@ -19,11 +19,11 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {IMG, ROUTES} from '../../utils';
 import {authLogin, USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {RootState} from '../../app/reducers';
-import type {RootStackParamList} from '../../navigation/types';
+import type {AuthStackParamList} from '../../navigation/types';
 import sign_in_with_google from '../../utils/firebase';
 import {showSuccess} from '../../components/alert_messages';
 
-type NavProp = StackNavigationProp<RootStackParamList>;
+type NavProp = StackNavigationProp<AuthStackParamList>;
 
 const MAROON = '#701104';
 const BORDER = '#DDDDDD';

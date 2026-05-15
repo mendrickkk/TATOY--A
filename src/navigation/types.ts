@@ -1,11 +1,15 @@
+import type {NavigatorScreenParams} from '@react-navigation/native';
+
 import {ROUTES} from '../utils';
 import type {Product} from '../types/product';
 
-export type RootStackParamList = {
+export type AuthStackParamList = {
   [ROUTES.LOGIN]: undefined;
   [ROUTES.REGISTER]: undefined;
+};
+
+export type HomeStackParamList = {
   [ROUTES.HOME]: undefined;
-  [ROUTES.PROFILE]: undefined;
   [ROUTES.NOTIFICATIONS]: undefined;
   [ROUTES.PRODUCT_DETAIL]: {
     apiBaseUrl?: string;
@@ -18,3 +22,13 @@ export type RootStackParamList = {
     apiBaseUrl?: string;
   };
 };
+
+export type MainTabParamList = {
+  [ROUTES.TAB_HOME]: NavigatorScreenParams<HomeStackParamList> | undefined;
+  [ROUTES.TAB_FAVORITE]: undefined;
+  [ROUTES.TAB_CART]: undefined;
+  [ROUTES.TAB_PROFILE]: undefined;
+};
+
+/** Home stack screens (product list, detail, etc.) */
+export type RootStackParamList = HomeStackParamList;
