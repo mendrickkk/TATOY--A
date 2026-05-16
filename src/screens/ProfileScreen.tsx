@@ -1,12 +1,5 @@
 import React, {useCallback} from 'react';
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -21,11 +14,13 @@ import {
   IconProfilePerson,
   IconProfileWishlist,
 } from '../components/ProfileMenuIcons';
-import type {ProfileStackParamList} from '../navigation/types';
+import type {MainTabParamList, ProfileStackParamList} from '../navigation/types';
+import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {getAuthProfileFields} from '../utils/authProfile';
 import {BRAND, ROUTES} from '../utils';
 
 type NavProp = StackNavigationProp<ProfileStackParamList, typeof ROUTES.PROFILE>;
+type TabNavProp = BottomTabNavigationProp<MainTabParamList>;
 
 type MenuItem = {
   key: string;
@@ -42,12 +37,21 @@ const ProfileScreen = () => {
   const {displayName, avatarInitial} = getAuthProfileFields(auth.data);
 
   const onChangePassword = useCallback(() => {
-    Alert.alert('Change Password', 'Coming soon');
-  }, []);
+    navigation.navigate(ROUTES.CHANGE_PASSWORD);
+  }, [navigation]);
 
   const onSignOut = useCallback(() => {
     dispatch(authLogout());
   }, [dispatch]);
+
+  const openWishlist = useCallback(() => {
+    const tabNav = navigation.getParent<TabNavProp>();
+    if (tabNav) {
+      tabNav.navigate(ROUTES.TAB_FAVORITE);
+      return;
+    }
+    navigation.navigate(ROUTES.MY_WISHLIST);
+  }, [navigation]);
 
   const menuItems: MenuItem[] = [
     {
@@ -66,7 +70,7 @@ const ProfileScreen = () => {
       key: 'wishlist',
       label: 'My Wishlist',
       Icon: IconProfileWishlist,
-      onPress: () => navigation.navigate(ROUTES.MY_WISHLIST),
+      onPress: openWishlist,
     },
     {
       key: 'password',

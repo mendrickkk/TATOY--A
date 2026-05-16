@@ -1,6 +1,7 @@
 import {createStackNavigator} from '@react-navigation/stack';
 
 import {BRAND, ROUTES} from '../utils';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import MyOrdersScreen from '../screens/MyOrdersScreen';
 import MyWishlistScreen from '../screens/MyWishlistScreen';
 import ProfileInfoScreen from '../screens/ProfileInfoScreen';
@@ -38,6 +39,11 @@ const ProfileStack = () => {
         name={ROUTES.MY_WISHLIST}
         component={MyWishlistScreen}
         options={{title: 'My Wishlist', ...profileSubHeader}}
+      />
+      <Stack.Screen
+        name={ROUTES.CHANGE_PASSWORD}
+        component={ChangePasswordScreen}
+        options={{headerShown: false}}
       />
     </Stack.Navigator>
   );

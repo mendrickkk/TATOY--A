@@ -20,8 +20,10 @@ import {useSelector} from 'react-redux';
 import {extractBearerJwtFromAuthData, fetchProducts, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import AppHeader from '../components/AppHeader';
+import FavoriteHeartButton from '../components/FavoriteHeartButton';
 import HeroCarousel from '../components/HeroCarousel';
 import ShopSearchBar from '../components/ShopSearchBar';
+import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
@@ -41,6 +43,7 @@ const HomeScreen = () => {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const auth = useSelector((state: RootState) => state.auth);
+  const {setApiBaseUrl: setFavoritesApiBase} = useFavorites();
   const displayName = getUserDisplayName(auth.data);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -63,6 +66,9 @@ const HomeScreen = () => {
         const {products: next, baseUrl} = await fetchProducts(getToken);
         setProducts(next);
         setApiBaseUrl(baseUrl);
+        if (baseUrl.trim()) {
+          setFavoritesApiBase(baseUrl);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not load products');
       } finally {
@@ -70,7 +76,7 @@ const HomeScreen = () => {
         setRefreshing(false);
       }
     },
-    [getToken],
+    [getToken, setFavoritesApiBase],
   );
 
   useEffect(() => {
@@ -142,6 +148,12 @@ const HomeScreen = () => {
             ) : (
               <View style={[styles.tileImage, styles.tileImagePlaceholder]} />
             )}
+            <FavoriteHeartButton
+              product={item}
+              apiBaseUrl={apiBaseUrl}
+              size="sm"
+              style={styles.tileHeart}
+            />
           </View>
           <Text style={styles.tilePrice}>{priceFormatter.format(item.price)}</Text>
         </Pressable>
@@ -314,6 +326,13 @@ const styles = StyleSheet.create({
   },
   tileImagePlaceholder: {
     opacity: 0.85,
+  },
+  tileHeart: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 14,
   },
   tilePrice: {
     marginTop: 10,

@@ -6,8 +6,9 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import rootSaga from './src/app/sagas';
 import configureStore from './src/app/reducers';
-import AppNav from './src/navigation';
 import toastConfig from './src/components/alert_messages/config';
+import {FavoritesProvider} from './src/context/FavoritesContext';
+import AppNav from './src/navigation';
 
 import Toast from 'react-native-toast-message';
 
@@ -20,10 +21,12 @@ const App = () => {
     <GestureHandlerRootView style={styles.appRoot}>
       <Provider store={store}>
         <SafeAreaProvider>
-          <View style={styles.appRoot}>
-            <AppNav />
-            <Toast config={toastConfig} />
-          </View>
+          <FavoritesProvider>
+            <View style={styles.appRoot}>
+              <AppNav />
+              <Toast config={toastConfig} />
+            </View>
+          </FavoritesProvider>
         </SafeAreaProvider>
       </Provider>
     </GestureHandlerRootView>

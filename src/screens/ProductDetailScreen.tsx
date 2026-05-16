@@ -22,6 +22,8 @@ import {getApiBaseCandidates} from '../app/api/auth';
 import {extractBearerJwtFromAuthData, fetchProductById, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import {showInfo} from '../components/alert_messages';
+import FavoriteHeartButton from '../components/FavoriteHeartButton';
+import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
@@ -63,7 +65,7 @@ const ProductDetailScreen = () => {
   const [loading, setLoading] = useState(!params.product);
   const [error, setError] = useState<string | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
-  const [favorite, setFavorite] = useState(false);
+  const {setApiBaseUrl: setFavoritesApiBase} = useFavorites();
 
   const getToken = useCallback(() => extractBearerJwtFromAuthData(auth.data), [auth.data]);
 
@@ -77,6 +79,9 @@ const ProductDetailScreen = () => {
       const {product: next, baseUrl} = await fetchProductById(routeId, getToken);
       setProduct(next);
       setApiBaseUrl(baseUrl);
+      if (baseUrl.trim()) {
+        setFavoritesApiBase(baseUrl);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not load product';
       setError(message);
@@ -84,7 +89,7 @@ const ProductDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [getToken, routeId]);
+  }, [getToken, routeId, setFavoritesApiBase]);
 
   useEffect(() => {
     if (!routeId) {
@@ -94,18 +99,27 @@ const ProductDetailScreen = () => {
     }
     if (params.product) {
       setProduct(params.product);
-      setApiBaseUrl(params.apiBaseUrl?.trim() || fallbackBase);
+      const base = params.apiBaseUrl?.trim() || fallbackBase;
+      setApiBaseUrl(base);
+      if (base) {
+        setFavoritesApiBase(base);
+      }
       setLoading(false);
       setError(null);
       return;
     }
     fetchById();
-  }, [routeId, params.product, params.apiBaseUrl, fallbackBase, fetchById]);
+  }, [routeId, params.product, params.apiBaseUrl, fallbackBase, fetchById, setFavoritesApiBase]);
 
   useEffect(() => {
     setDescExpanded(false);
-    setFavorite(false);
   }, [routeId]);
+
+  useEffect(() => {
+    if (apiBaseUrl.trim()) {
+      setFavoritesApiBase(apiBaseUrl);
+    }
+  }, [apiBaseUrl, setFavoritesApiBase]);
 
   useFocusEffect(
     useCallback(() => {
@@ -250,15 +264,9 @@ const ProductDetailScreen = () => {
               accessibilityLabel="Go back">
               <Text style={styles.backChevron}>‹</Text>
             </Pressable>
-            <Pressable
-              style={styles.circleBtn}
-              onPress={() => setFavorite(f => !f)}
-              accessibilityRole="button"
-              accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}>
-              <Text style={[styles.heart, favorite && styles.heartOn]}>
-                {favorite ? '♥' : '♡'}
-              </Text>
-            </Pressable>
+            <View style={styles.circleBtn}>
+              <FavoriteHeartButton product={product} apiBaseUrl={apiBaseUrl} size="lg" />
+            </View>
           </View>
         </View>
 
@@ -427,13 +435,6 @@ const styles = StyleSheet.create({
     color: '#444444',
     marginTop: -2,
     fontWeight: '300',
-  },
-  heart: {
-    fontSize: 22,
-    color: BRAND.maroonPrimary,
-  },
-  heartOn: {
-    color: BRAND.maroonDark,
   },
   body: {
     paddingHorizontal: H_PAD,

@@ -7,11 +7,17 @@ import {IconPencil} from './ProfileMenuIcons';
 type Props = {
   title?: string;
   onBack: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
+  showEdit?: boolean;
 };
 
-/** Centered title with circular back / edit actions (Profile Info reference). */
-const ProfileDetailHeader = ({title = 'My Profile', onBack, onEdit}: Props) => {
+/** Centered title with circular back / optional edit (Profile sub-screens). */
+const ProfileDetailHeader = ({
+  title = 'My Profile',
+  onBack,
+  onEdit,
+  showEdit = true,
+}: Props) => {
   const insets = useSafeAreaInsets();
 
   return (
@@ -29,13 +35,17 @@ const ProfileDetailHeader = ({title = 'My Profile', onBack, onEdit}: Props) => {
           {title}
         </Text>
 
-        <Pressable
-          style={styles.circleBtn}
-          onPress={onEdit}
-          accessibilityRole="button"
-          accessibilityLabel="Edit profile">
-          <IconPencil color="#444444" size={18} />
-        </Pressable>
+        {showEdit && onEdit ? (
+          <Pressable
+            style={styles.circleBtn}
+            onPress={onEdit}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile">
+            <IconPencil color="#444444" size={18} />
+          </Pressable>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
     </View>
   );
@@ -59,6 +69,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: 40,
+    height: 40,
   },
   backChevron: {
     fontSize: 26,

@@ -258,3 +258,97 @@ export async function userRegister({
     new Error('Connection failed. Check that the server is running and reachable.')
   );
 }
+
+export type ChangePasswordParams = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+/** POST /api/change-password with Bearer JWT. */
+export async function changePassword(
+  bearerToken: string,
+  {currentPassword, newPassword}: ChangePasswordParams,
+): Promise<unknown> {
+  const token = bearerToken.trim();
+  if (!token) {
+    throw new Error('You must be signed in to change your password.');
+  }
+
+  const body = {
+    currentPassword,
+    newPassword,
+    current_password: currentPassword,
+    new_password: newPassword,
+    password: newPassword,
+  };
+
+  const options: RequestInit = {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  };
+
+  let lastConnectionError: Error | null = null;
+
+  for (const baseUrl of getApiBaseCandidates()) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/api/change-password`, {
+        ...options,
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === 'AbortError') {
+        lastConnectionError = new Error(
+          `Connection timed out reaching ${baseUrl}. Check that the server is running and reachable.`,
+        );
+      } else if (err instanceof Error) {
+        lastConnectionError = normalizeFetchConnectionError(err);
+      } else {
+        lastConnectionError = new Error('Connection failed');
+      }
+      continue;
+    }
+    clearTimeout(timeoutId);
+
+    let rawText = '';
+    try {
+      rawText = await response.text();
+    } catch {
+      rawText = '';
+    }
+
+    let data: unknown = null;
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText) as LoginErrorPayload;
+      } catch {
+        data = {text: rawText};
+      }
+    }
+
+    if (response.ok) {
+      return data ?? {success: true};
+    }
+
+    const message = apiErrorMessageFromBody(data, 'Could not change password');
+    const statusSuffix = response.status ? ` (HTTP ${response.status})` : '';
+    const error = new Error(`${message}${statusSuffix}`) as LoginError;
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
+
+  throw (
+    lastConnectionError ||
+    new Error('Connection failed. Check that the server is running and reachable.')
+  );
+}

@@ -19,6 +19,8 @@ import {useSelector} from 'react-redux';
 
 import {extractBearerJwtFromAuthData, fetchProducts, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
+import FavoriteHeartButton from '../components/FavoriteHeartButton';
+import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
@@ -40,6 +42,7 @@ const PopularBouquetsScreen = () => {
   const route = useRoute<CatalogRoute>();
   const {width: windowW} = useWindowDimensions();
   const auth = useSelector((state: RootState) => state.auth);
+  const {setApiBaseUrl: setFavoritesApiBase} = useFavorites();
 
   const initialProducts = route.params?.products;
   const initialBase = route.params?.apiBaseUrl?.trim() ?? '';
@@ -69,6 +72,9 @@ const PopularBouquetsScreen = () => {
         const {products: next, baseUrl} = await fetchProducts(getToken);
         setProducts(next);
         setApiBaseUrl(baseUrl);
+        if (baseUrl.trim()) {
+          setFavoritesApiBase(baseUrl);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not load products');
       } finally {
@@ -76,7 +82,7 @@ const PopularBouquetsScreen = () => {
         setRefreshing(false);
       }
     },
-    [getToken, initialProducts?.length],
+    [getToken, initialProducts?.length, setFavoritesApiBase],
   );
 
   useEffect(() => {
@@ -132,6 +138,12 @@ const PopularBouquetsScreen = () => {
             ) : (
               <View style={[styles.image, styles.placeholder, {width: cellW, height: cellW}]} />
             )}
+            <FavoriteHeartButton
+              product={item}
+              apiBaseUrl={apiBaseUrl}
+              size="sm"
+              style={styles.tileHeart}
+            />
           </View>
           <Text style={styles.price}>{priceFormatter.format(item.price)}</Text>
         </Pressable>
@@ -214,6 +226,13 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     opacity: 0.85,
+  },
+  tileHeart: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 14,
   },
   price: {
     marginTop: 10,
