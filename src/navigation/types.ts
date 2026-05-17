@@ -21,6 +21,10 @@ export type HomeStackParamList = {
     products?: Product[];
     apiBaseUrl?: string;
   };
+  [ROUTES.CHECKOUT]: undefined;
+  [ROUTES.ORDER_SUCCESS]: {
+    orderNumber?: string;
+  };
 };
 
 export type ProfileStackParamList = {

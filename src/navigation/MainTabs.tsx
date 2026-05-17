@@ -10,6 +10,7 @@ import {
   IconTabHome,
   IconTabProfile,
 } from '../components/TabBarIcons';
+import {useCart} from '../context/CartContext';
 import CartScreen from '../screens/CartScreen';
 import FavoriteScreen from '../screens/FavoriteScreen';
 import {BRAND, ROUTES} from '../utils';
@@ -40,7 +41,10 @@ function TabBarIcon({focused, color, size, Icon}: TabIconProps) {
 
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
+  const {itemCount} = useCart();
   const tabBarHeight = TAB_BAR_BASE_HEIGHT + insets.bottom;
+  const cartBadge =
+    itemCount > 0 ? (itemCount > 99 ? '99+' : itemCount) : undefined;
 
   const screenOptions: BottomTabNavigationOptions = {
     headerShown: false,
@@ -84,6 +88,7 @@ const MainTabs = () => {
         component={CartScreen}
         options={{
           tabBarLabel: 'Cart',
+          tabBarBadge: cartBadge,
           tabBarIcon: ({focused, color, size}) => (
             <TabBarIcon focused={focused} color={color} size={size} Icon={IconTabCart} />
           ),

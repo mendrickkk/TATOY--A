@@ -1,8 +1,10 @@
 import {createStackNavigator} from '@react-navigation/stack';
 
 import {BRAND, ROUTES} from '../utils';
+import CheckoutScreen from '../screens/CheckoutScreen';
 import HomeScreen from '../screens/HomeScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import OrderSuccessScreen from '../screens/OrderSuccessScreen';
 import PopularBouquetsScreen from '../screens/PopularBouquetsScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import type {HomeStackParamList} from './types';
@@ -36,6 +38,21 @@ const HomeStack = () => {
           headerTitleStyle: {fontWeight: '700', color: BRAND.productTitle},
           headerShadowVisible: false,
         }}
+      />
+      <Stack.Screen
+        name={ROUTES.CHECKOUT}
+        component={CheckoutScreen}
+        options={{
+          title: 'Checkout',
+          headerTintColor: BRAND.maroonPrimary,
+          headerTitleStyle: {fontWeight: '700', color: BRAND.productTitle},
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name={ROUTES.ORDER_SUCCESS}
+        component={OrderSuccessScreen}
+        options={{headerShown: false, gestureEnabled: false}}
       />
     </Stack.Navigator>
   );

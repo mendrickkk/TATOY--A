@@ -7,6 +7,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import rootSaga from './src/app/sagas';
 import configureStore from './src/app/reducers';
 import toastConfig from './src/components/alert_messages/config';
+import {CartProvider} from './src/context/CartContext';
 import {FavoritesProvider} from './src/context/FavoritesContext';
 import AppNav from './src/navigation';
 
@@ -22,10 +23,12 @@ const App = () => {
       <Provider store={store}>
         <SafeAreaProvider>
           <FavoritesProvider>
-            <View style={styles.appRoot}>
-              <AppNav />
-              <Toast config={toastConfig} />
-            </View>
+            <CartProvider>
+              <View style={styles.appRoot}>
+                <AppNav />
+                <Toast config={toastConfig} />
+              </View>
+            </CartProvider>
           </FavoritesProvider>
         </SafeAreaProvider>
       </Provider>

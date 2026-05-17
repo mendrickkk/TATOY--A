@@ -14,6 +14,8 @@ const ROUTES = {
   NOTIFICATIONS: 'Notifications',
   PRODUCT_DETAIL: 'ProductDetail',
   POPULAR_BOUQUETS: 'PopularBouquets',
+  CHECKOUT: 'Checkout',
+  ORDER_SUCCESS: 'OrderSuccess',
 } as const;
 
 export default ROUTES;

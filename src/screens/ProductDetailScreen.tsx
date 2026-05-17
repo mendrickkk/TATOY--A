@@ -21,8 +21,9 @@ import {useSelector} from 'react-redux';
 import {getApiBaseCandidates} from '../app/api/auth';
 import {extractBearerJwtFromAuthData, fetchProductById, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
-import {showInfo} from '../components/alert_messages';
+import {showSuccess} from '../components/alert_messages';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
+import {useCart} from '../context/CartContext';
 import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
@@ -66,6 +67,7 @@ const ProductDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
   const {setApiBaseUrl: setFavoritesApiBase} = useFavorites();
+  const {addItem, setApiBaseUrl: setCartApiBase} = useCart();
 
   const getToken = useCallback(() => extractBearerJwtFromAuthData(auth.data), [auth.data]);
 
@@ -81,6 +83,7 @@ const ProductDetailScreen = () => {
       setApiBaseUrl(baseUrl);
       if (baseUrl.trim()) {
         setFavoritesApiBase(baseUrl);
+        setCartApiBase(baseUrl);
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not load product';
@@ -89,7 +92,7 @@ const ProductDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [getToken, routeId, setFavoritesApiBase]);
+  }, [getToken, routeId, setFavoritesApiBase, setCartApiBase]);
 
   useEffect(() => {
     if (!routeId) {
@@ -103,13 +106,14 @@ const ProductDetailScreen = () => {
       setApiBaseUrl(base);
       if (base) {
         setFavoritesApiBase(base);
+        setCartApiBase(base);
       }
       setLoading(false);
       setError(null);
       return;
     }
     fetchById();
-  }, [routeId, params.product, params.apiBaseUrl, fallbackBase, fetchById, setFavoritesApiBase]);
+  }, [routeId, params.product, params.apiBaseUrl, fallbackBase, fetchById, setFavoritesApiBase, setCartApiBase]);
 
   useEffect(() => {
     setDescExpanded(false);
@@ -118,8 +122,9 @@ const ProductDetailScreen = () => {
   useEffect(() => {
     if (apiBaseUrl.trim()) {
       setFavoritesApiBase(apiBaseUrl);
+      setCartApiBase(apiBaseUrl);
     }
-  }, [apiBaseUrl, setFavoritesApiBase]);
+  }, [apiBaseUrl, setFavoritesApiBase, setCartApiBase]);
 
   useFocusEffect(
     useCallback(() => {
@@ -152,12 +157,17 @@ const ProductDetailScreen = () => {
   }, [params.relatedProducts, product]);
 
   const onAddToCart = useCallback(() => {
-    showInfo({
-      title: 'Cart',
-      message: 'Cart coming next',
+    if (!product) {
+      return;
+    }
+    addItem(product, 1);
+    showSuccess({
+      title: 'Added to cart',
+      message: product.name,
       position: 'bottom',
+      visibilityTime: 2000,
     });
-  }, []);
+  }, [addItem, product]);
 
   const openProduct = useCallback(
     (item: Product) => {
