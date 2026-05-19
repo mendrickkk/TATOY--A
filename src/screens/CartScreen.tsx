@@ -13,11 +13,19 @@ import {useNavigation} from '@react-navigation/native';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+import {showInfo} from '../components/alert_messages';
+import QuantityStepper from '../components/QuantityStepper';
 import {getProductImageUri} from '../app/api/products';
 import {useCart} from '../context/CartContext';
 import type {MainTabParamList} from '../navigation/types';
 import type {CartLine} from '../types/cart';
 import {BRAND, ROUTES} from '../utils';
+import {
+  cartLineStockHint,
+  getMaxPurchasable,
+  getStockIssues,
+  lineExceedsStock,
+} from '../utils/stock';
 
 const SHIPPING_COST = 10;
 const DISCOUNT = 2;
@@ -33,15 +41,36 @@ type TabNav = BottomTabNavigationProp<MainTabParamList>;
 type CartLineRowProps = {
   line: CartLine;
   imageUri: string | null;
+  exceedsStock: boolean;
+  stockHint: string | null;
+  maxStock?: number;
   onRemove: (productId: string) => void;
   onChangeQty: (productId: string, quantity: number) => void;
+  onIncreaseAtMax: (max: number) => void;
 };
 
-function CartLineRow({line, imageUri, onRemove, onChangeQty}: CartLineRowProps) {
+function CartLineRow({
+  line,
+  imageUri,
+  exceedsStock,
+  stockHint,
+  maxStock,
+  onRemove,
+  onChangeQty,
+  onIncreaseAtMax,
+}: CartLineRowProps) {
   const {product, quantity} = line;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, exceedsStock && styles.cardError]}>
+      {exceedsStock ? (
+        <View style={styles.rowErrorStrip}>
+          <Text style={styles.rowErrorText} accessibilityRole="alert">
+            Not enough stock — reduce quantity
+          </Text>
+        </View>
+      ) : null}
+      <View style={styles.cardRow}>
       <Pressable
         style={styles.removeBtn}
         onPress={() => onRemove(product.id)}
@@ -60,25 +89,27 @@ function CartLineRow({line, imageUri, onRemove, onChangeQty}: CartLineRowProps) 
           {product.name}
         </Text>
         <Text style={styles.unitPrice}>{priceFormatter.format(product.price)}</Text>
+        {stockHint ? (
+          <Text style={styles.stockHint} accessibilityLabel={stockHint}>
+            {stockHint}
+          </Text>
+        ) : null}
         <View style={styles.stepperRow}>
-          <View style={styles.stepper}>
-            <Pressable
-              style={styles.stepperBtnMuted}
-              onPress={() => onChangeQty(product.id, quantity - 1)}
-              accessibilityRole="button"
-              accessibilityLabel="Decrease quantity">
-              <Text style={styles.stepperBtnTextMuted}>−</Text>
-            </Pressable>
-            <Text style={styles.qtyValue}>{quantity}</Text>
-            <Pressable
-              style={styles.stepperBtnPrimary}
-              onPress={() => onChangeQty(product.id, quantity + 1)}
-              accessibilityRole="button"
-              accessibilityLabel="Increase quantity">
-              <Text style={styles.stepperBtnTextPrimary}>+</Text>
-            </Pressable>
-          </View>
+          <QuantityStepper
+            value={quantity}
+            onDecrease={() => onChangeQty(product.id, quantity - 1)}
+            onIncrease={() => {
+              if (maxStock !== undefined && quantity >= maxStock) {
+                onIncreaseAtMax(maxStock);
+                return;
+              }
+              onChangeQty(product.id, quantity + 1);
+            }}
+            max={maxStock}
+            accessibilityPrefix={`${product.name} quantity`}
+          />
         </View>
+      </View>
       </View>
     </View>
   );
@@ -98,14 +129,28 @@ const CartScreen = () => {
   } = useCart();
 
   const isEmpty = lines.length === 0;
+  const stockIssues = useMemo(() => getStockIssues(lines), [lines]);
+  const hasStockProblems = stockIssues.length > 0;
   const total = useMemo(
     () => Math.max(0, subtotal + SHIPPING_COST - DISCOUNT),
     [subtotal],
   );
 
+  const onIncreaseAtMax = useCallback((max: number) => {
+    showInfo({
+      title: 'Maximum available',
+      message: `Maximum available: ${max}`,
+      position: 'bottom',
+      visibilityTime: 2000,
+    });
+  }, []);
+
   const onCheckout = useCallback(() => {
+    if (hasStockProblems) {
+      return;
+    }
     navigation.navigate(ROUTES.TAB_HOME, {screen: ROUTES.CHECKOUT});
-  }, [navigation]);
+  }, [hasStockProblems, navigation]);
 
   const goHome = useCallback(() => {
     navigation.navigate(ROUTES.TAB_HOME, {screen: ROUTES.HOME});
@@ -116,11 +161,15 @@ const CartScreen = () => {
       <CartLineRow
         line={item}
         imageUri={getProductImageUri(apiBaseUrl, item.product.image)}
+        exceedsStock={lineExceedsStock(item)}
+        stockHint={cartLineStockHint(item)}
+        maxStock={getMaxPurchasable(item.product)}
         onRemove={removeItem}
         onChangeQty={updateQuantity}
+        onIncreaseAtMax={onIncreaseAtMax}
       />
     ),
-    [apiBaseUrl, removeItem, updateQuantity],
+    [apiBaseUrl, onIncreaseAtMax, removeItem, updateQuantity],
   );
 
   if (!hydrated) {
@@ -182,12 +231,22 @@ const CartScreen = () => {
               <Text style={styles.totalLabel}>Total Price</Text>
               <Text style={styles.totalValue}>{priceFormatter.format(total)}</Text>
             </View>
+            {hasStockProblems ? (
+              <Text
+                style={styles.checkoutBlockedHint}
+                accessibilityRole="text"
+                accessibilityLabel="Fix quantities above before checkout">
+                Fix quantities above before checkout
+              </Text>
+            ) : null}
             <TouchableOpacity
-              style={styles.paymentBtn}
+              style={[styles.paymentBtn, hasStockProblems && styles.paymentBtnDisabled]}
               onPress={onCheckout}
+              disabled={hasStockProblems}
               activeOpacity={0.88}
               accessibilityRole="button"
-              accessibilityLabel="Proceed to checkout">
+              accessibilityLabel="Proceed to checkout"
+              accessibilityState={{disabled: hasStockProblems}}>
               <Text style={styles.paymentBtnText}>Payment</Text>
             </TouchableOpacity>
           </View>
@@ -261,11 +320,30 @@ const styles = StyleSheet.create({
     height: 12,
   },
   card: {
-    flexDirection: 'row',
     backgroundColor: BRAND.productTileBg,
     borderRadius: 16,
     padding: 12,
+  },
+  cardRow: {
+    flexDirection: 'row',
     alignItems: 'flex-start',
+  },
+  cardError: {
+    borderWidth: 1,
+    borderColor: 'rgba(110, 15, 15, 0.35)',
+  },
+  rowErrorStrip: {
+    width: '100%',
+    backgroundColor: 'rgba(110, 15, 15, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  rowErrorText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: BRAND.maroonPrimary,
   },
   removeBtn: {
     position: 'absolute',
@@ -305,50 +383,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111111',
   },
+  stockHint: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#6b7280',
+  },
   stepperRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 8,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  stepperBtnMuted: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(110, 15, 15, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperBtnPrimary: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: BRAND.maroonPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperBtnTextMuted: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: BRAND.maroonPrimary,
-    lineHeight: 22,
-  },
-  stepperBtnTextPrimary: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    lineHeight: 22,
-  },
-  qtyValue: {
-    minWidth: 28,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111111',
   },
   summarySheet: {
     position: 'absolute',
@@ -397,12 +440,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111111',
   },
+  checkoutBlockedHint: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '600',
+    color: BRAND.maroonPrimary,
+    textAlign: 'center',
+  },
   paymentBtn: {
     marginTop: 14,
     backgroundColor: BRAND.maroonPrimary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
+  },
+  paymentBtnDisabled: {
+    opacity: 0.45,
   },
   paymentBtnText: {
     color: '#ffffff',

@@ -21,13 +21,21 @@ import {useSelector} from 'react-redux';
 import {getApiBaseCandidates} from '../app/api/auth';
 import {extractBearerJwtFromAuthData, fetchProductById, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
-import {showSuccess} from '../components/alert_messages';
+import {showInfo, showSuccess} from '../components/alert_messages';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
+import QuantityStepper from '../components/QuantityStepper';
+import StockBanner from '../components/StockBanner';
 import {useCart} from '../context/CartContext';
 import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
+import {
+  clampQuantityToStock,
+  getMaxPurchasable,
+  isOutOfStock,
+  stockChipLabel,
+} from '../utils/stock';
 
 const priceFormatter = new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -66,6 +74,7 @@ const ProductDetailScreen = () => {
   const [loading, setLoading] = useState(!params.product);
   const [error, setError] = useState<string | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const {setApiBaseUrl: setFavoritesApiBase} = useFavorites();
   const {addItem, setApiBaseUrl: setCartApiBase} = useCart();
 
@@ -117,7 +126,15 @@ const ProductDetailScreen = () => {
 
   useEffect(() => {
     setDescExpanded(false);
+    setQuantity(1);
   }, [routeId]);
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+    setQuantity(prev => clampQuantityToStock(product, prev));
+  }, [product?.id, product?.stock]);
 
   useEffect(() => {
     if (apiBaseUrl.trim()) {
@@ -156,18 +173,48 @@ const ProductDetailScreen = () => {
     return list.filter(p => p.id !== product.id);
   }, [params.relatedProducts, product]);
 
-  const onAddToCart = useCallback(() => {
+  const maxStock = product ? getMaxPurchasable(product) : undefined;
+  const outOfStock = product ? isOutOfStock(product) : false;
+  const canPurchase = product ? !isOutOfStock(product) : false;
+  const stockLabel = product ? stockChipLabel(product) : null;
+
+  const onIncreaseQty = useCallback(() => {
     if (!product) {
       return;
     }
-    addItem(product, 1);
+    const max = getMaxPurchasable(product);
+    if (max !== undefined && quantity >= max) {
+      showInfo({
+        title: 'Maximum available',
+        message: `Maximum available: ${max}`,
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
+      return;
+    }
+    setQuantity(q => clampQuantityToStock(product, q + 1));
+  }, [product, quantity]);
+
+  const onDecreaseQty = useCallback(() => {
+    if (!product) {
+      return;
+    }
+    setQuantity(q => Math.max(1, q - 1));
+  }, [product]);
+
+  const onAddToCart = useCallback(() => {
+    if (!product || outOfStock) {
+      return;
+    }
+    const qty = clampQuantityToStock(product, quantity);
+    addItem(product, qty);
     showSuccess({
       title: 'Added to cart',
       message: product.name,
       position: 'bottom',
       visibilityTime: 2000,
     });
-  }, [addItem, product]);
+  }, [addItem, outOfStock, product, quantity]);
 
   const openProduct = useCallback(
     (item: Product) => {
@@ -286,6 +333,18 @@ const ProductDetailScreen = () => {
           <Text style={styles.title}>{product.name}</Text>
           <Text style={styles.price}>{priceFormatter.format(product.price)}</Text>
 
+          {outOfStock ? (
+            <StockBanner
+              title="Out of stock"
+              message="Check back later."
+            />
+          ) : null}
+          {!outOfStock && stockLabel ? (
+            <View style={styles.stockChip}>
+              <Text style={styles.stockChipText}>{stockLabel}</Text>
+            </View>
+          ) : null}
+
           <Text style={styles.sectionHeading}>Details</Text>
           {description ? (
             <View>
@@ -338,19 +397,40 @@ const ProductDetailScreen = () => {
       </ScrollView>
 
       <View style={[styles.bottomBar, {paddingBottom: bottomInset}]}>
+        {canPurchase ? (
+          <View style={styles.bottomStepperRow}>
+            <Text style={styles.bottomQtyLabel}>Quantity</Text>
+            <QuantityStepper
+              value={quantity}
+              onDecrease={onDecreaseQty}
+              onIncrease={onIncreaseQty}
+              max={maxStock}
+              accessibilityPrefix="Product quantity"
+            />
+          </View>
+        ) : null}
         <View style={styles.bottomBarInner}>
           <View>
             <Text style={styles.bottomLabel}>Price</Text>
             <Text style={styles.bottomPrice}>{priceFormatter.format(product.price)}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={onAddToCart}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-            accessibilityLabel="Add to cart">
-            <Text style={styles.addBtnText}>Add to cart</Text>
-          </TouchableOpacity>
+          {outOfStock ? (
+            <View
+              style={[styles.addBtn, styles.addBtnUnavailable]}
+              accessibilityRole="text"
+              accessibilityLabel="Unavailable, out of stock">
+              <Text style={styles.addBtnUnavailableText}>Unavailable</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={onAddToCart}
+              activeOpacity={0.88}
+              accessibilityRole="button"
+              accessibilityLabel="Add to cart">
+              <Text style={styles.addBtnText}>Add to cart</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -467,6 +547,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BRAND.productPriceBold,
   },
+  stockChip: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(110, 15, 15, 0.08)',
+  },
+  stockChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
   sectionHeading: {
     marginTop: 22,
     marginBottom: 10,
@@ -548,6 +641,17 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 12,
   },
+  bottomStepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  bottomQtyLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555555',
+  },
   bottomBarInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -572,8 +676,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  addBtnUnavailable: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: BRAND.maroonPrimary,
+    opacity: 0.65,
+  },
   addBtnText: {
     color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  addBtnUnavailableText: {
+    color: BRAND.maroonPrimary,
     fontSize: 16,
     fontWeight: '700',
   },

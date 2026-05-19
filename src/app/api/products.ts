@@ -3,6 +3,7 @@ import {
   normalizeFetchConnectionError,
   REQUEST_TIMEOUT_MS,
 } from './auth';
+import {failIfAuthenticatedUnauthorized} from './session';
 import {normalizeUnknownToProduct, type Product} from '../../types/product';
 
 export type FetchProductsResult = {
@@ -228,9 +229,12 @@ export async function fetchProducts(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    const run = async (accept: string): Promise<{response: Response; rawText: string}> => {
+    const run = async (
+      accept: string,
+    ): Promise<{response: Response; rawText: string; hadAuthAttempt: boolean}> => {
       const token = getToken?.() ?? null;
       const authHeader = token ? `Bearer ${token}` : undefined;
+      const hadAuthAttempt = Boolean(authHeader);
       let response = await fetchProductsOnce(baseUrl, accept, controller.signal, authHeader);
 
       if (response.status === 401 && !authHeader) {
@@ -245,22 +249,27 @@ export async function fetchProducts(
         }
       }
 
+      if (response.status === 401 && authHeader) {
+        response = await fetchProductsOnce(baseUrl, accept, controller.signal, undefined);
+      }
+
       let rawText = '';
       try {
         rawText = await response.text();
       } catch {
         rawText = '';
       }
-      return {response, rawText};
+      return {response, rawText, hadAuthAttempt};
     };
 
     let response: Response;
     let rawText: string;
+    let hadAuthAttempt = false;
 
     try {
-      ({response, rawText} = await run('application/json'));
+      ({response, rawText, hadAuthAttempt} = await run('application/json'));
       if (response.status === 406) {
-        ({response, rawText} = await run('application/ld+json'));
+        ({response, rawText, hadAuthAttempt} = await run('application/ld+json'));
       }
     } catch (err: unknown) {
       clearTimeout(timeoutId);
@@ -300,6 +309,13 @@ export async function fetchProducts(
       return {products, baseUrl};
     }
 
+    failIfAuthenticatedUnauthorized(
+      response,
+      data,
+      hadAuthAttempt,
+      'Could not load products',
+    );
+
     const message = apiErrorMessageFromBody(data, 'Could not load products');
     const statusSuffix = response.status ? ` (HTTP ${response.status})` : '';
     throw new Error(`${message}${statusSuffix}`);
@@ -325,9 +341,12 @@ export async function fetchProductById(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    const run = async (accept: string): Promise<{response: Response; rawText: string}> => {
+    const run = async (
+      accept: string,
+    ): Promise<{response: Response; rawText: string; hadAuthAttempt: boolean}> => {
       const token = getToken?.() ?? null;
       const authHeader = token ? `Bearer ${token}` : undefined;
+      const hadAuthAttempt = Boolean(authHeader);
       let response = await fetchProductByIdOnce(
         baseUrl,
         path,
@@ -349,22 +368,33 @@ export async function fetchProductById(
         }
       }
 
+      if (response.status === 401 && authHeader) {
+        response = await fetchProductByIdOnce(
+          baseUrl,
+          path,
+          accept,
+          controller.signal,
+          undefined,
+        );
+      }
+
       let rawText = '';
       try {
         rawText = await response.text();
       } catch {
         rawText = '';
       }
-      return {response, rawText};
+      return {response, rawText, hadAuthAttempt};
     };
 
     let response: Response;
     let rawText: string;
+    let hadAuthAttempt = false;
 
     try {
-      ({response, rawText} = await run('application/json'));
+      ({response, rawText, hadAuthAttempt} = await run('application/json'));
       if (response.status === 406) {
-        ({response, rawText} = await run('application/ld+json'));
+        ({response, rawText, hadAuthAttempt} = await run('application/ld+json'));
       }
     } catch (err: unknown) {
       clearTimeout(timeoutId);
@@ -394,6 +424,13 @@ export async function fetchProductById(
     if (response.status === 404) {
       throw new Error('Product not found');
     }
+
+    failIfAuthenticatedUnauthorized(
+      response,
+      data,
+      hadAuthAttempt,
+      'Could not load product',
+    );
 
     const message = apiErrorMessageFromBody(data, 'Could not load product');
     const statusSuffix = response.status ? ` (HTTP ${response.status})` : '';

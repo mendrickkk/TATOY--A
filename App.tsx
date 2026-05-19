@@ -9,6 +9,7 @@ import configureStore from './src/app/reducers';
 import toastConfig from './src/components/alert_messages/config';
 import {CartProvider} from './src/context/CartContext';
 import {FavoritesProvider} from './src/context/FavoritesContext';
+import SessionSync from './src/components/SessionSync';
 import AppNav from './src/navigation';
 
 import Toast from 'react-native-toast-message';
@@ -21,6 +22,7 @@ const App = () => {
   return (
     <GestureHandlerRootView style={styles.appRoot}>
       <Provider store={store}>
+        <SessionSync />
         <SafeAreaProvider>
           <FavoritesProvider>
             <CartProvider>

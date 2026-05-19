@@ -10,7 +10,10 @@ export type Product = {
   /** Relative path, absolute URL, or API Platform IRI string */
   image?: string | null;
   category?: string;
-  /** Single quantity field if the backend exposes it */
+  /**
+   * Available units when the API sends `stock`, `availableQuantity`, etc.
+   * `undefined` = unknown (no client-side cap). `0` = out of stock.
+   */
   stock?: number;
 };
 
@@ -99,14 +102,19 @@ function pickImage(o: Record<string, unknown>): string | null | undefined {
 }
 
 function pickStock(o: Record<string, unknown>): number | undefined {
-  return (
+  const raw =
     readNumber(o.stock) ??
     readNumber(o.Stock) ??
     readNumber(o.stocks) ??
     readNumber(o.Stocks) ??
-    readNumber(o.quantity) ??
-    readNumber(o.Quantity)
-  );
+    readNumber(o.availableQuantity) ??
+    readNumber(o.AvailableQuantity) ??
+    readNumber(o.availableStock) ??
+    readNumber(o.AvailableStock);
+  if (raw === undefined) {
+    return undefined;
+  }
+  return Math.max(0, Math.floor(raw));
 }
 
 function pickCategory(o: Record<string, unknown>): string | undefined {
@@ -137,6 +145,8 @@ export function normalizeUnknownToProduct(raw: unknown): Product | null {
   const description =
     readString(o.description) || readString(o.Description) || undefined;
 
+  const stock = pickStock(o);
+
   return {
     id,
     name,
@@ -144,6 +154,6 @@ export function normalizeUnknownToProduct(raw: unknown): Product | null {
     description,
     image: pickImage(o) ?? null,
     category: pickCategory(o),
-    stock: pickStock(o),
+    ...(stock !== undefined ? {stock} : {}),
   };
 }

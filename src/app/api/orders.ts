@@ -4,6 +4,7 @@ import {
   REQUEST_TIMEOUT_MS,
 } from './auth';
 import {productItemApiPath} from './products';
+import {failIfAuthenticatedUnauthorized} from './session';
 import type {CreateOrderRequest, Order, OrderLine} from '../../types/order';
 
 export type CreateOrderResult = {
@@ -39,30 +40,92 @@ function readNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function apiErrorMessageFromBody(data: unknown, defaultMessage: string): string {
+export class OrderApiError extends Error {
+  readonly bullets: string[];
+
+  constructor(message: string, bullets: string[] = []) {
+    super(message);
+    this.name = 'OrderApiError';
+    this.bullets = bullets.length > 0 ? bullets : [message];
+  }
+}
+
+function collectViolationMessages(value: unknown): string[] {
+  if (!value) {
+    return [];
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [value.trim()];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(collectViolationMessages);
+  }
+  if (typeof value === 'object') {
+    const o = value as Record<string, unknown>;
+    const direct =
+      stringish(o.message) ||
+      stringish(o.detail) ||
+      stringish(o.title) ||
+      stringish(o.description);
+    if (direct) {
+      return [direct];
+    }
+    return Object.values(o).flatMap(collectViolationMessages);
+  }
+  return [];
+}
+
+export function apiErrorBulletsFromBody(data: unknown, defaultMessage: string): string[] {
   const body =
     data && typeof data === 'object' ? (data as Record<string, unknown>) : undefined;
+  if (!body) {
+    return [defaultMessage];
+  }
+
+  const violations = body.violations ?? body.Violations;
+  const fromViolations = collectViolationMessages(violations);
+  if (fromViolations.length > 0) {
+    return fromViolations;
+  }
+
   const errors =
-    body?.errors && typeof body.errors === 'object'
+    body.errors && typeof body.errors === 'object'
       ? (body.errors as Record<string, unknown>)
       : undefined;
 
-  const hydra = body?.hydra;
+  const hydra = body['hydra:description'] ?? body.hydraDescription;
+  const hydraObj = body.hydra;
   const hydraDescription =
-    hydra && typeof hydra === 'object' && !Array.isArray(hydra)
-      ? stringish((hydra as Record<string, unknown>).description)
-      : undefined;
+    stringish(hydra) ||
+    (hydraObj && typeof hydraObj === 'object' && !Array.isArray(hydraObj)
+      ? stringish((hydraObj as Record<string, unknown>).description)
+      : undefined);
 
-  return (
+  const single =
     hydraDescription ||
-    stringish(body?.hydraDescription) ||
-    stringish(body?.message) ||
-    stringish(body?.error) ||
-    stringish(body?.detail) ||
+    stringish(body.message) ||
+    stringish(body.error) ||
+    stringish(body.detail) ||
+    stringish(body.title) ||
+    stringish(body.description) ||
     stringish(errors?.detail) ||
     stringish(errors?.message) ||
-    defaultMessage
-  );
+    stringish(errors?.title);
+
+  if (single) {
+    return [single];
+  }
+
+  const nestedErrors = collectViolationMessages(errors);
+  if (nestedErrors.length > 0) {
+    return nestedErrors;
+  }
+
+  return [defaultMessage];
+}
+
+function apiErrorMessageFromBody(data: unknown, defaultMessage: string): string {
+  return apiErrorBulletsFromBody(data, defaultMessage)[0] ?? defaultMessage;
 }
 
 function parseJsonResponse(rawText: string): unknown {
@@ -223,9 +286,12 @@ async function requestJson(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    const run = async (mime: string): Promise<{response: Response; rawText: string}> => {
+    const run = async (
+      mime: string,
+    ): Promise<{response: Response; rawText: string; hadAuthAttempt: boolean}> => {
       const token = getToken() ?? null;
       const authHeader = token ? `Bearer ${token}` : undefined;
+      const hadAuthAttempt = Boolean(authHeader);
       const headers: Record<string, string> = {
         Accept: mime,
         ...(init.headers as Record<string, string>),
@@ -240,7 +306,6 @@ async function requestJson(
         controller.signal,
         authHeader,
       );
-
       if (response.status === 401 && !authHeader) {
         const retryToken = getToken();
         if (retryToken) {
@@ -260,16 +325,17 @@ async function requestJson(
       } catch {
         rawText = '';
       }
-      return {response, rawText};
+      return {response, rawText, hadAuthAttempt};
     };
 
     let response: Response;
     let rawText: string;
+    let hadAuthAttempt = false;
 
     try {
-      ({response, rawText} = await run('application/ld+json'));
+      ({response, rawText, hadAuthAttempt} = await run('application/ld+json'));
       if (response.status === 406 || response.status === 415) {
-        ({response, rawText} = await run('application/json'));
+        ({response, rawText, hadAuthAttempt} = await run('application/json'));
       }
     } catch (err: unknown) {
       clearTimeout(timeoutId);
@@ -292,9 +358,12 @@ async function requestJson(
       return {data, baseUrl};
     }
 
-    const message = apiErrorMessageFromBody(data, defaultError);
+    failIfAuthenticatedUnauthorized(response, data, hadAuthAttempt, defaultError);
+
+    const bullets = apiErrorBulletsFromBody(data, defaultError);
+    const message = bullets[0] ?? defaultError;
     const statusSuffix = response.status ? ` (HTTP ${response.status})` : '';
-    throw new Error(`${message}${statusSuffix}`);
+    throw new OrderApiError(`${message}${statusSuffix}`, bullets);
   }
 
   throw (

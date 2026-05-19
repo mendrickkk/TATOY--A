@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,13 +16,19 @@ import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useSelector} from 'react-redux';
 
-import {cartLinesToOrderRequest, createOrder} from '../app/api/orders';
+import {cartLinesToOrderRequest, createOrder, OrderApiError} from '../app/api/orders';
 import {extractBearerJwtFromAuthData, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
+import CheckoutErrorCard from '../components/CheckoutErrorCard';
 import {useCart} from '../context/CartContext';
 import type {HomeStackParamList} from '../navigation/types';
 import type {CartLine} from '../types/cart';
 import {BRAND, ROUTES} from '../utils';
+import {
+  cartLineStockHint,
+  getStockIssues,
+  stockIssueMessage,
+} from '../utils/stock';
 
 const priceFormatter = new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -39,6 +45,7 @@ type SummaryLineProps = {
 
 function SummaryLine({line, imageUri}: SummaryLineProps) {
   const lineTotal = line.product.price * line.quantity;
+  const hint = cartLineStockHint(line);
   return (
     <View style={styles.lineCard}>
       {imageUri ? (
@@ -53,6 +60,7 @@ function SummaryLine({line, imageUri}: SummaryLineProps) {
         <Text style={styles.lineMeta}>
           {priceFormatter.format(line.product.price)} × {line.quantity}
         </Text>
+        {hint ? <Text style={styles.lineStockHint}>{hint}</Text> : null}
         <Text style={styles.lineTotal}>{priceFormatter.format(lineTotal)}</Text>
       </View>
     </View>
@@ -68,9 +76,15 @@ const CheckoutScreen = () => {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorBullets, setErrorBullets] = useState<string[]>([]);
 
   const getToken = useCallback(() => extractBearerJwtFromAuthData(auth.data), [auth.data]);
+
+  const stockIssues = useMemo(() => getStockIssues(lines), [lines]);
+  const stockIssueMessages = useMemo(
+    () => stockIssues.map(stockIssueMessage),
+    [stockIssues],
+  );
 
   useEffect(() => {
     if (lines.length === 0) {
@@ -81,16 +95,20 @@ const CheckoutScreen = () => {
   const onPlaceOrder = useCallback(async () => {
     const address = deliveryAddress.trim();
     if (!address) {
-      setError('Delivery address is required.');
+      setErrorBullets(['Delivery address is required.']);
       return;
     }
     if (lines.length === 0) {
-      setError('Your cart is empty.');
+      setErrorBullets(['Your cart is empty.']);
+      return;
+    }
+    if (stockIssueMessages.length > 0) {
+      setErrorBullets(stockIssueMessages);
       return;
     }
 
     setSubmitting(true);
-    setError(null);
+    setErrorBullets([]);
     try {
       const body = cartLinesToOrderRequest(lines, address, notes);
       const {order} = await createOrder(body, getToken);
@@ -99,12 +117,24 @@ const CheckoutScreen = () => {
         orderNumber: order.orderNumber,
       });
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Could not place order';
-      setError(message);
+      if (e instanceof OrderApiError) {
+        setErrorBullets(e.bullets);
+      } else {
+        const message = e instanceof Error ? e.message : 'Could not place order';
+        setErrorBullets([message]);
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [clearCart, deliveryAddress, getToken, lines, navigation, notes]);
+  }, [
+    clearCart,
+    deliveryAddress,
+    getToken,
+    lines,
+    navigation,
+    notes,
+    stockIssueMessages,
+  ]);
 
   if (lines.length === 0) {
     return (
@@ -114,7 +144,9 @@ const CheckoutScreen = () => {
     );
   }
 
-  const canSubmit = deliveryAddress.trim().length > 0 && !submitting;
+  const hasBlockingStock = stockIssueMessages.length > 0;
+  const canSubmit =
+    deliveryAddress.trim().length > 0 && !submitting && !hasBlockingStock;
 
   return (
     <KeyboardAvoidingView
@@ -128,6 +160,10 @@ const CheckoutScreen = () => {
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
+        {errorBullets.length > 0 ? (
+          <CheckoutErrorCard bullets={errorBullets} />
+        ) : null}
+
         <Text style={styles.sectionTitle}>Order summary</Text>
         {lines.map(line => (
           <SummaryLine
@@ -151,8 +187,8 @@ const CheckoutScreen = () => {
           value={deliveryAddress}
           onChangeText={t => {
             setDeliveryAddress(t);
-            if (error) {
-              setError(null);
+            if (errorBullets.length > 0) {
+              setErrorBullets([]);
             }
           }}
           placeholder="e.g. Cebu City"
@@ -177,8 +213,6 @@ const CheckoutScreen = () => {
           <Text style={styles.codTitle}>Payment method</Text>
           <Text style={styles.codValue}>Cash on delivery (pay when delivered)</Text>
         </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
       <View style={[styles.footer, {paddingBottom: Math.max(insets.bottom, 12)}]}>
@@ -188,7 +222,8 @@ const CheckoutScreen = () => {
           disabled={!canSubmit}
           activeOpacity={0.88}
           accessibilityRole="button"
-          accessibilityLabel="Place order">
+          accessibilityLabel="Place order"
+          accessibilityState={{disabled: !canSubmit}}>
           {submitting ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
@@ -207,7 +242,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
   },
   centered: {
@@ -231,6 +266,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 10,
     marginBottom: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e8e8e8',
   },
   thumb: {
     width: 72,
@@ -252,6 +289,11 @@ const styles = StyleSheet.create({
   lineMeta: {
     marginTop: 4,
     fontSize: 13,
+    color: '#6b7280',
+  },
+  lineStockHint: {
+    marginTop: 2,
+    fontSize: 12,
     color: '#6b7280',
   },
   lineTotal: {
@@ -286,7 +328,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   required: {
-    color: '#a40000',
+    color: BRAND.maroonPrimary,
   },
   fieldGap: {
     marginTop: 16,
@@ -301,11 +343,14 @@ const styles = StyleSheet.create({
     color: '#111111',
     minHeight: 48,
     textAlignVertical: 'top',
+    backgroundColor: '#ffffff',
   },
   codBox: {
     backgroundColor: BRAND.productTileBg,
     borderRadius: 12,
     padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e8e8e8',
   },
   codTitle: {
     fontSize: 13,
@@ -318,19 +363,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111111',
   },
-  errorText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#a40000',
-    lineHeight: 20,
-  },
   footer: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#e5e7eb',

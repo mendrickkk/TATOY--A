@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -18,6 +18,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useSelector} from 'react-redux';
 
 import {extractBearerJwtFromAuthData, fetchProducts, getProductImageUri} from '../app/api/products';
+import {isSessionExpiredError} from '../app/api/session';
 import type {RootState} from '../app/reducers';
 import AppHeader from '../components/AppHeader';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
@@ -27,6 +28,7 @@ import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
+import {lowStockLabel} from '../utils/stock';
 import {getUserDisplayName} from '../utils/userDisplayName';
 
 type NavProp = StackNavigationProp<RootStackParamList>;
@@ -51,6 +53,7 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const getToken = useCallback(() => extractBearerJwtFromAuthData(auth.data), [auth.data]);
 
@@ -70,10 +73,15 @@ const HomeScreen = () => {
           setFavoritesApiBase(baseUrl);
         }
       } catch (e) {
+        if (isSessionExpiredError(e)) {
+          setError(null);
+          return;
+        }
         setError(e instanceof Error ? e.message : 'Could not load products');
       } finally {
         setLoading(false);
         setRefreshing(false);
+        hasLoadedOnce.current = true;
       }
     },
     [getToken, setFavoritesApiBase],
@@ -89,13 +97,16 @@ const HomeScreen = () => {
       if (Platform.OS === 'android') {
         StatusBar.setBackgroundColor(BRAND.maroonPrimary);
       }
+      if (hasLoadedOnce.current) {
+        loadProducts('refresh');
+      }
       return () => {
         StatusBar.setBarStyle('dark-content');
         if (Platform.OS === 'android') {
           StatusBar.setBackgroundColor('#ffffff');
         }
       };
-    }, []),
+    }, [loadProducts]),
   );
 
   const listHeader = useMemo(() => {
@@ -128,11 +139,12 @@ const HomeScreen = () => {
   const renderProductTile = useCallback(
     ({item}: {item: Product}) => {
       const uri = getProductImageUri(apiBaseUrl, item.image);
+      const scarcity = lowStockLabel(item);
       return (
         <Pressable
           style={({pressed}) => [styles.tileWrap, pressed && styles.tilePressed]}
           accessibilityRole="button"
-          accessibilityLabel={`${item.name}, ${priceFormatter.format(item.price)}`}
+          accessibilityLabel={`${item.name}, ${priceFormatter.format(item.price)}${scarcity ? `, ${scarcity}` : ''}`}
           onPress={() => openProductDetail(item)}
           android_ripple={{color: 'rgba(110, 15, 15, 0.12)', borderless: false}}>
           <View style={styles.tileImageShell}>
@@ -148,6 +160,11 @@ const HomeScreen = () => {
             ) : (
               <View style={[styles.tileImage, styles.tileImagePlaceholder]} />
             )}
+            {scarcity ? (
+              <View style={styles.lowStockBadge} pointerEvents="none">
+                <Text style={styles.lowStockText}>{scarcity}</Text>
+              </View>
+            ) : null}
             <FavoriteHeartButton
               product={item}
               apiBaseUrl={apiBaseUrl}
@@ -333,6 +350,21 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderRadius: 14,
+  },
+  lowStockBadge: {
+    position: 'absolute',
+    left: 6,
+    bottom: 6,
+    maxWidth: '90%',
+    backgroundColor: 'rgba(110, 15, 15, 0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  lowStockText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffffff',
   },
   tilePrice: {
     marginTop: 10,
