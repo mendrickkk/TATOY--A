@@ -273,31 +273,42 @@ async function fetchWithAuth(
   return fetch(`${root}${path}`, {...init, headers, signal});
 }
 
+type RequestJsonOptions = {
+  /** Request body MIME (e.g. API Platform PATCH → merge-patch+json). */
+  contentType?: string;
+  /** Response Accept header; defaults to application/ld+json. */
+  accept?: string;
+};
+
 async function requestJson(
   path: string,
   init: RequestInit,
   getToken: () => string | null,
   defaultError: string,
   expectStatus: number,
+  options?: RequestJsonOptions,
 ): Promise<{data: unknown; baseUrl: string}> {
   let lastConnectionError: Error | null = null;
+  const acceptMime = options?.accept?.trim() || 'application/ld+json';
+  const bodyMime = options?.contentType?.trim();
 
   for (const baseUrl of getApiBaseCandidates()) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     const run = async (
-      mime: string,
+      accept: string,
+      contentType?: string,
     ): Promise<{response: Response; rawText: string; hadAuthAttempt: boolean}> => {
       const token = getToken() ?? null;
       const authHeader = token ? `Bearer ${token}` : undefined;
       const hadAuthAttempt = Boolean(authHeader);
       const headers: Record<string, string> = {
-        Accept: mime,
+        Accept: accept,
         ...(init.headers as Record<string, string>),
       };
       if (init.body) {
-        headers['Content-Type'] = mime;
+        headers['Content-Type'] = contentType ?? accept;
       }
       let response = await fetchWithAuth(
         baseUrl,
@@ -333,9 +344,9 @@ async function requestJson(
     let hadAuthAttempt = false;
 
     try {
-      ({response, rawText, hadAuthAttempt} = await run('application/ld+json'));
-      if (response.status === 406 || response.status === 415) {
-        ({response, rawText, hadAuthAttempt} = await run('application/json'));
+      ({response, rawText, hadAuthAttempt} = await run(acceptMime, bodyMime));
+      if (!bodyMime && (response.status === 406 || response.status === 415)) {
+        ({response, rawText, hadAuthAttempt} = await run('application/json', 'application/json'));
       }
     } catch (err: unknown) {
       clearTimeout(timeoutId);
@@ -405,6 +416,50 @@ export async function createOrder(
   const order = normalizeUnknownToOrder(data);
   if (!order) {
     throw new Error('Could not parse order response');
+  }
+  return {order, baseUrl};
+}
+
+/**
+ * Builds `/api/orders/{id}` for PATCH/cancel (handles JSON-LD `@id` values).
+ */
+export function orderItemApiPath(orderId: string): string {
+  const t = orderId.trim();
+  if (/^https?:\/\//i.test(t)) {
+    const pathMatch = t.match(/^https?:\/\/[^/]+(\/api\/orders\/[^/?#]+)/i);
+    if (pathMatch?.[1]) {
+      return pathMatch[1];
+    }
+  }
+  const withoutQuery = (t.split('?')[0] ?? t).trim();
+  const match = withoutQuery.match(/(\/api\/orders\/[^/]+)\/?$/);
+  if (match) {
+    return match[1];
+  }
+  const slug = withoutQuery.replace(/^\/+/, '');
+  return `/api/orders/${slug}`;
+}
+
+export async function cancelOrder(
+  orderId: string,
+  getToken: () => string | null,
+): Promise<CreateOrderResult> {
+  const path = orderItemApiPath(orderId);
+  const {data, baseUrl} = await requestJson(
+    path,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({status: 'cancelled'}),
+    },
+    getToken,
+    'Could not cancel order',
+    200,
+    {contentType: 'application/merge-patch+json'},
+  );
+
+  const order = normalizeUnknownToOrder(data);
+  if (!order) {
+    throw new OrderApiError('Could not parse cancelled order response');
   }
   return {order, baseUrl};
 }

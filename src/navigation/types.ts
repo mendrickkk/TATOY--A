@@ -1,6 +1,7 @@
 import type {NavigatorScreenParams} from '@react-navigation/native';
 
 import {ROUTES} from '../utils';
+import type {Order} from '../types/order';
 import type {Product} from '../types/product';
 
 export type AuthStackParamList = {
@@ -34,6 +35,10 @@ export type ProfileStackParamList = {
   [ROUTES.PROFILE]: undefined;
   [ROUTES.PROFILE_INFO]: undefined;
   [ROUTES.MY_ORDERS]: undefined;
+  [ROUTES.ORDER_DETAILS]: {
+    order: Order;
+    apiBaseUrl?: string;
+  };
   [ROUTES.MY_WISHLIST]: undefined;
   [ROUTES.CHANGE_PASSWORD]: undefined;
 };

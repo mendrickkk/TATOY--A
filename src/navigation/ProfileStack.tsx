@@ -3,6 +3,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {BRAND, ROUTES} from '../utils';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import MyOrdersScreen from '../screens/MyOrdersScreen';
+import OrderDetailsScreen from '../screens/OrderDetailsScreen';
 import MyWishlistScreen from '../screens/MyWishlistScreen';
 import ProfileInfoScreen from '../screens/ProfileInfoScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -34,6 +35,11 @@ const ProfileStack = () => {
         name={ROUTES.MY_ORDERS}
         component={MyOrdersScreen}
         options={{title: 'My Orders', ...profileSubHeader}}
+      />
+      <Stack.Screen
+        name={ROUTES.ORDER_DETAILS}
+        component={OrderDetailsScreen}
+        options={{title: 'Order details', ...profileSubHeader}}
       />
       <Stack.Screen
         name={ROUTES.MY_WISHLIST}

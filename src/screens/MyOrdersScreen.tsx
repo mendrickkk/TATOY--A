@@ -9,7 +9,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useSelector} from 'react-redux';
 
@@ -17,12 +18,14 @@ import {fetchMyOrders} from '../app/api/orders';
 import {extractBearerJwtFromAuthData, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import ProfileEmptyStateBox from '../components/ProfileEmptyStateBox';
+import type {ProfileStackParamList} from '../navigation/types';
 import {
   isActiveOrderStatus,
   isCompletedOrderStatus,
   type Order,
 } from '../types/order';
-import {BRAND} from '../utils';
+import {BRAND, ROUTES} from '../utils';
+import {formatOrderStatusLabel} from '../utils/orderDisplay';
 
 type TabKey = 'active' | 'completed';
 
@@ -32,13 +35,7 @@ const priceFormatter = new Intl.NumberFormat('en-PH', {
   maximumFractionDigits: 2,
 });
 
-function formatStatus(status: string): string {
-  const s = status.trim();
-  if (!s) {
-    return 'Unknown';
-  }
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-}
+type OrdersNavProp = StackNavigationProp<ProfileStackParamList, typeof ROUTES.MY_ORDERS>;
 
 function primaryLine(order: Order) {
   return order.lines[0] ?? null;
@@ -47,15 +44,20 @@ function primaryLine(order: Order) {
 type OrderCardProps = {
   order: Order;
   imageUri: string | null;
+  onPress: () => void;
 };
 
-function OrderCard({order, imageUri}: OrderCardProps) {
+function OrderCard({order, imageUri, onPress}: OrderCardProps) {
   const line = primaryLine(order);
   const name = line?.product.name ?? 'Order';
   const extra = order.lines.length > 1 ? ` +${order.lines.length - 1} more` : '';
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({pressed}) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Order ${order.orderNumber}, ${name}, ${formatOrderStatusLabel(order.status)}`}>
       {imageUri ? (
         <Image source={{uri: imageUri}} style={styles.thumb} resizeMode="cover" />
       ) : (
@@ -69,16 +71,17 @@ function OrderCard({order, imageUri}: OrderCardProps) {
         <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
         <View style={styles.cardFooter}>
           <View style={styles.statusPill}>
-            <Text style={styles.statusText}>{formatStatus(order.status)}</Text>
+            <Text style={styles.statusText}>{formatOrderStatusLabel(order.status)}</Text>
           </View>
           <Text style={styles.total}>{priceFormatter.format(order.total)}</Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 const MyOrdersScreen = () => {
+  const navigation = useNavigation<OrdersNavProp>();
   const insets = useSafeAreaInsets();
   const auth = useSelector((state: RootState) => state.auth);
   const [tab, setTab] = useState<TabKey>('active');
@@ -135,9 +138,20 @@ const MyOrdersScreen = () => {
         apiBaseUrl,
         line?.product.imageUrl ?? null,
       );
-      return <OrderCard order={item} imageUri={imageUri} />;
+      return (
+        <OrderCard
+          order={item}
+          imageUri={imageUri}
+          onPress={() =>
+            navigation.navigate(ROUTES.ORDER_DETAILS, {
+              order: item,
+              apiBaseUrl: apiBaseUrl.trim() || undefined,
+            })
+          }
+        />
+      );
     },
-    [apiBaseUrl],
+    [apiBaseUrl, navigation],
   );
 
   const emptyMessage =
@@ -289,6 +303,9 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND.productTileBg,
     borderRadius: 14,
     padding: 12,
+  },
+  cardPressed: {
+    opacity: 0.92,
   },
   thumb: {
     width: 72,

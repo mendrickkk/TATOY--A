@@ -183,22 +183,12 @@ const CartScreen = () => {
 
   return (
     <View style={[styles.root, {paddingTop: Math.max(insets.top, 12)}]}>
-      <Text style={styles.screenTitle}>Cart</Text>
+      <Text style={styles.screenTitle}>Your bag</Text>
 
       {loadError ? <Text style={styles.bannerError}>{loadError}</Text> : null}
 
       {isEmpty ? (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <TouchableOpacity
-            style={styles.homeLink}
-            onPress={goHome}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Go to Home">
-            <Text style={styles.homeLinkText}>Browse bouquets on Home</Text>
-          </TouchableOpacity>
-        </View>
+        <CartEmptyState onStartShopping={goHome} />
       ) : (
         <>
           <FlatList
@@ -260,6 +250,65 @@ function CartListSeparator() {
   return <View style={styles.listSep} />;
 }
 
+const EMPTY_BAG_COLOR = '#c8c8c8';
+
+/** Outline shopping bag for empty-state illustration (reference mockup). */
+function EmptyBagIcon({size = 52}: {size?: number}) {
+  const handleW = size * 0.42;
+  const handleH = size * 0.22;
+  return (
+    <View style={{width: size, height: size * 1.05, alignItems: 'center'}}>
+      <View
+        style={{
+          width: handleW,
+          height: handleH,
+          borderWidth: 2.5,
+          borderColor: EMPTY_BAG_COLOR,
+          borderBottomWidth: 0,
+          borderTopLeftRadius: handleW * 0.5,
+          borderTopRightRadius: handleW * 0.5,
+          marginBottom: -handleH * 0.35,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.88,
+          height: size * 0.78,
+          borderWidth: 2.5,
+          borderColor: EMPTY_BAG_COLOR,
+          borderRadius: 8,
+        }}
+      />
+    </View>
+  );
+}
+
+type CartEmptyStateProps = {
+  onStartShopping: () => void;
+};
+
+function CartEmptyState({onStartShopping}: CartEmptyStateProps) {
+  return (
+    <View style={styles.emptyWrap}>
+      <View style={styles.emptyIconCircle} accessibilityElementsHidden>
+        <EmptyBagIcon />
+      </View>
+      <Text style={styles.emptyHeadline}>Your bag is empty</Text>
+      <Text style={styles.emptySubtitle}>
+        When you add bouquets, they'll show up here.
+      </Text>
+      <TouchableOpacity
+        style={styles.startShoppingBtn}
+        onPress={onStartShopping}
+        activeOpacity={0.88}
+        accessibilityRole="button"
+        accessibilityLabel="Start shopping">
+        <Text style={styles.startShoppingBtnText}>Start shopping</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -275,11 +324,12 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   screenTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#111111',
-    textAlign: 'center',
-    marginBottom: 16,
+    textAlign: 'left',
+    letterSpacing: -0.5,
+    marginBottom: 8,
     paddingHorizontal: 20,
   },
   bannerError: {
@@ -293,24 +343,49 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingBottom: 80,
+    paddingHorizontal: 24,
+    paddingBottom: 48,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
-    marginBottom: 16,
+  emptyIconCircle: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
   },
-  homeLink: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  homeLinkText: {
-    fontSize: 16,
+  emptyHeadline: {
+    fontSize: 22,
     fontWeight: '700',
-    color: BRAND.maroonPrimary,
+    color: '#111111',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#9ca3af',
+    textAlign: 'center',
+    maxWidth: 280,
+    marginBottom: 32,
+  },
+  startShoppingBtn: {
+    alignSelf: 'stretch',
+    backgroundColor: BRAND.maroonPrimary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: BRAND.maroonDark,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  startShoppingBtnText: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
   },
   listContent: {
     paddingHorizontal: 16,

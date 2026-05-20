@@ -33,10 +33,17 @@ export type Order = {
 };
 
 export const ACTIVE_ORDER_STATUSES = new Set(['pending', 'processing']);
+export const CANCELLABLE_ORDER_STATUSES = new Set(['pending', 'processing']);
+export const NON_CANCELLABLE_ORDER_STATUSES = new Set([
+  'shipped',
+  'delivered',
+  'completed',
+]);
 export const COMPLETED_ORDER_STATUSES = new Set([
   'completed',
   'delivered',
   'cancelled',
+  'shipped',
 ]);
 
 export function normalizeOrderStatus(status: string): string {
@@ -51,4 +58,20 @@ export function isActiveOrderStatus(status: string): boolean {
 export function isCompletedOrderStatus(status: string): boolean {
   const s = normalizeOrderStatus(status);
   return COMPLETED_ORDER_STATUSES.has(s);
+}
+
+export function isOrderCancellable(status: string): boolean {
+  return CANCELLABLE_ORDER_STATUSES.has(normalizeOrderStatus(status));
+}
+
+export function isOrderNonCancellableFinal(status: string): boolean {
+  const s = normalizeOrderStatus(status);
+  if (s === 'cancelled') {
+    return false;
+  }
+  return NON_CANCELLABLE_ORDER_STATUSES.has(s);
+}
+
+export function isOrderCancelled(status: string): boolean {
+  return normalizeOrderStatus(status) === 'cancelled';
 }

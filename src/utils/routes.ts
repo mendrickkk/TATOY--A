@@ -9,6 +9,7 @@ const ROUTES = {
   PROFILE: 'Profile',
   PROFILE_INFO: 'ProfileInfo',
   MY_ORDERS: 'MyOrders',
+  ORDER_DETAILS: 'OrderDetails',
   MY_WISHLIST: 'MyWishlist',
   CHANGE_PASSWORD: 'ChangePassword',
   NOTIFICATIONS: 'Notifications',
