@@ -1,6 +1,8 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
+import {FONTS} from '../utils';
+
 type Props = {
   children: string;
 };
@@ -28,6 +30,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     lineHeight: 22,
     color: '#6b7280',

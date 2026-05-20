@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
-import {BRAND} from '../utils';
+import {BRAND, FONTS} from '../utils';
 
 const FavoritesEmptyState = () => {
   return (
@@ -38,13 +38,15 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   title: {
-    fontSize: 20,
+    fontFamily: FONTS.display,
+    fontSize: 22,
     fontWeight: '700',
     color: BRAND.productTitle,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     lineHeight: 22,
     color: '#6b7280',

@@ -22,7 +22,7 @@ import ProfileDetailHeader from '../components/ProfileDetailHeader';
 import ProfilePasswordField from '../components/ProfilePasswordField';
 import {showSuccess} from '../components/alert_messages';
 import type {ProfileStackParamList} from '../navigation/types';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 
 type NavProp = StackNavigationProp<ProfileStackParamList, typeof ROUTES.CHANGE_PASSWORD>;
 
@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   subtitle: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     lineHeight: 22,
     color: '#6b7280',
@@ -217,6 +218,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   googleNote: {
+    fontFamily: FONTS.body,
     fontSize: 14,
     lineHeight: 20,
     color: '#6b7280',
@@ -244,6 +246,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   saveLabel: {
+    fontFamily: FONTS.body,
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: 2,

@@ -24,7 +24,7 @@ import {
   isCompletedOrderStatus,
   type Order,
 } from '../types/order';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 import {formatOrderStatusLabel} from '../utils/orderDisplay';
 
 type TabKey = 'active' | 'completed';
@@ -238,12 +238,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   title: {
-    fontSize: 22,
+    fontFamily: FONTS.display,
+    fontSize: 24,
     fontWeight: '700',
     color: BRAND.maroonPrimary,
     letterSpacing: 0.4,
   },
   subtitle: {
+    fontFamily: FONTS.body,
     marginTop: 8,
     fontSize: 15,
     lineHeight: 22,
@@ -265,6 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(110, 15, 15, 0.12)',
   },
   tabText: {
+    fontFamily: FONTS.body,
     fontSize: 14,
     fontWeight: '600',
     color: '#6b7280',
@@ -278,6 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   errorBanner: {
+    fontFamily: FONTS.body,
     marginHorizontal: 20,
     marginTop: 8,
     fontSize: 13,
@@ -322,11 +326,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   productName: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '600',
     color: '#111111',
   },
   orderNumber: {
+    fontFamily: FONTS.body,
     marginTop: 4,
     fontSize: 13,
     color: '#6b7280',
@@ -344,11 +350,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   statusText: {
+    fontFamily: FONTS.body,
     fontSize: 12,
     fontWeight: '600',
     color: BRAND.maroonPrimary,
   },
   total: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '700',
     color: '#111111',

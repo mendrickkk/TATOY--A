@@ -21,7 +21,7 @@ import {useFavorites} from '../context/FavoritesContext';
 import FavoriteHeartButton from './FavoriteHeartButton';
 import FavoritesEmptyState from './FavoritesEmptyState';
 import type {Product} from '../types/product';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 
 const H_PAD = 16;
 const COL_GAP = 12;
@@ -164,7 +164,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   headerTitle: {
-    fontSize: 22,
+    fontFamily: FONTS.display,
+    fontSize: 24,
     fontWeight: '700',
     color: BRAND.maroonPrimary,
     paddingHorizontal: H_PAD,
@@ -202,6 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   price: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 15,
     fontWeight: '700',

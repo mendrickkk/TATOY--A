@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
-import {BRAND} from '../utils';
+import {BRAND, FONTS} from '../utils';
 import {IconBell} from './ShopHeaderIcons';
 
 export type AppHeaderProps = {
@@ -20,13 +20,15 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   greeting: {
+    fontFamily: FONTS.body,
     color: BRAND.headerTextMuted,
     fontSize: 14,
     fontWeight: '500',
   },
   name: {
+    fontFamily: FONTS.display,
     color: BRAND.headerText,
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '700',
     marginTop: 2,
   },
@@ -72,6 +74,7 @@ const styles = StyleSheet.create({
     borderColor: BRAND.maroonDark,
   },
   badgeCountText: {
+    fontFamily: FONTS.body,
     color: '#fff',
     fontSize: 10,
     fontWeight: '700',

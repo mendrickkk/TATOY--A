@@ -13,7 +13,7 @@ import {
 import {useCart} from '../context/CartContext';
 import CartScreen from '../screens/CartScreen';
 import FavoriteScreen from '../screens/FavoriteScreen';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 import HomeStack from './HomeStack';
 import ProfileStack from './ProfileStack';
 import type {MainTabParamList} from './types';
@@ -110,6 +110,7 @@ const MainTabs = () => {
 
 const styles = StyleSheet.create({
   tabLabel: {
+    fontFamily: FONTS.body,
     fontSize: 11,
     fontWeight: '600',
     marginBottom: 2,

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 
-import {BRAND} from '../utils';
+import {BRAND, FONTS} from '../utils';
 
 type Props = {
   value: number;
@@ -84,18 +84,21 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   btnTextMuted: {
+    fontFamily: FONTS.body,
     fontSize: 18,
     fontWeight: '600',
     color: BRAND.maroonPrimary,
     lineHeight: 22,
   },
   btnTextPrimary: {
+    fontFamily: FONTS.body,
     fontSize: 18,
     fontWeight: '600',
     color: '#ffffff',
     lineHeight: 22,
   },
   value: {
+    fontFamily: FONTS.body,
     minWidth: 28,
     textAlign: 'center',
     fontSize: 16,

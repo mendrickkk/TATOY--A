@@ -1,6 +1,6 @@
 import {createStackNavigator} from '@react-navigation/stack';
 
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import MyOrdersScreen from '../screens/MyOrdersScreen';
 import OrderDetailsScreen from '../screens/OrderDetailsScreen';
@@ -13,7 +13,12 @@ const Stack = createStackNavigator<ProfileStackParamList>();
 
 const profileSubHeader = {
   headerTintColor: BRAND.maroonPrimary,
-  headerTitleStyle: {fontWeight: '700' as const, color: BRAND.productTitle},
+  headerTitleStyle: {
+    fontFamily: FONTS.display,
+    fontWeight: '700' as const,
+    fontSize: 22,
+    color: BRAND.productTitle,
+  },
   headerStyle: {backgroundColor: '#ffffff'},
   headerShadowVisible: false,
 };

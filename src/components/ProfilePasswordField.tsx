@@ -8,7 +8,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 
-import {BRAND} from '../utils';
+import {BRAND, FONTS} from '../utils';
 
 const BORDER = '#DDDDDD';
 const PLACEHOLDER_GRAY = '#AAAAAA';
@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
+    fontFamily: FONTS.body,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.6,
@@ -87,6 +88,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   input: {
+    fontFamily: FONTS.body,
     flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 14,

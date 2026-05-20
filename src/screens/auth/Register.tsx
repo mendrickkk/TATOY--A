@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +17,7 @@ import {GoogleSigninButton} from '@react-native-google-signin/google-signin';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {userRegister} from '../../app/api/auth';
-import {IMG, ROUTES} from '../../utils';
+import {FONTS, IMG, ROUTES} from '../../utils';
 import {USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {AuthStackParamList} from '../../navigation/types';
 import sign_in_with_google from '../../utils/firebase';
@@ -275,19 +274,16 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   title: {
+    fontFamily: FONTS.display,
     fontSize: 28,
     fontWeight: '400',
     color: MAROON,
     textAlign: 'center',
     letterSpacing: 6,
     marginBottom: 16,
-    fontFamily: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      default: undefined,
-    }),
   },
   subtitle: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: SUBTITLE_BLACK,
     textAlign: 'center',
@@ -295,6 +291,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   input: {
+    fontFamily: FONTS.body,
     width: '100%',
     borderWidth: 1,
     borderColor: BORDER,
@@ -314,6 +311,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   passwordInput: {
+    fontFamily: FONTS.body,
     flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -341,6 +339,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   primaryButtonText: {
+    fontFamily: FONTS.body,
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
@@ -358,10 +357,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerMuted: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: MUTED_GRAY,
   },
   footerLink: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '700',
     color: LINK_DARK,

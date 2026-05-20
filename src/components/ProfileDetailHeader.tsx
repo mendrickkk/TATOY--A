@@ -2,6 +2,7 @@ import React from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+import {FONTS} from '../utils';
 import {IconPencil} from './ProfileMenuIcons';
 
 type Props = {
@@ -81,9 +82,10 @@ const styles = StyleSheet.create({
     fontWeight: '300',
   },
   title: {
+    fontFamily: FONTS.display,
     flex: 1,
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#111111',
     marginHorizontal: 8,

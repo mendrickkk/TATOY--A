@@ -9,7 +9,7 @@ import ProfileDetailHeader from '../components/ProfileDetailHeader';
 import type {RootState} from '../app/reducers';
 import type {ProfileStackParamList} from '../navigation/types';
 import {getAuthProfileFields} from '../utils/authProfile';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 
 type NavProp = StackNavigationProp<ProfileStackParamList, typeof ROUTES.PROFILE_INFO>;
 
@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   fieldLabel: {
+    fontFamily: FONTS.body,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.6,
@@ -82,6 +83,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   fieldValue: {
+    fontFamily: FONTS.body,
     fontSize: 16,
     color: BRAND.productTitle,
     lineHeight: 22,

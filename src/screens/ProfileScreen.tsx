@@ -17,7 +17,7 @@ import {
 import type {MainTabParamList, ProfileStackParamList} from '../navigation/types';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {getAuthProfileFields} from '../utils/authProfile';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 
 type NavProp = StackNavigationProp<ProfileStackParamList, typeof ROUTES.PROFILE>;
 type TabNavProp = BottomTabNavigationProp<MainTabParamList>;
@@ -144,12 +144,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   avatarLetter: {
+    fontFamily: FONTS.body,
     fontSize: 36,
     fontWeight: '700',
     color: '#ffffff',
   },
   displayName: {
-    fontSize: 20,
+    fontFamily: FONTS.display,
+    fontSize: 24,
     fontWeight: '700',
     color: BRAND.productTitle,
     textAlign: 'center',
@@ -166,6 +168,7 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     flex: 1,
+    fontFamily: FONTS.body,
     fontSize: 16,
     fontWeight: '500',
     color: BRAND.productTitle,

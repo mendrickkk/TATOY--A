@@ -11,7 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import {BRAND} from '../utils';
+import {BRAND, FONTS} from '../utils';
 import {IconScanner, IconSearch, IconSliders} from './ShopHeaderIcons';
 
 export type ShopSearchBarProps = {
@@ -39,6 +39,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   input: {
+    fontFamily: FONTS.body,
     flex: 1,
     marginLeft: 6,
     fontSize: 16,

@@ -19,7 +19,7 @@ import {getProductImageUri} from '../app/api/products';
 import {useCart} from '../context/CartContext';
 import type {MainTabParamList} from '../navigation/types';
 import type {CartLine} from '../types/cart';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 import {
   cartLineStockHint,
   getMaxPurchasable,
@@ -319,11 +319,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
+    fontFamily: FONTS.body,
     marginTop: 12,
     fontSize: 15,
     color: '#6b7280',
   },
   screenTitle: {
+    fontFamily: FONTS.display,
     fontSize: 32,
     fontWeight: '800',
     color: '#111111',
@@ -333,6 +335,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   bannerError: {
+    fontFamily: FONTS.body,
     marginHorizontal: 20,
     marginBottom: 8,
     fontSize: 13,
@@ -356,13 +359,15 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   emptyHeadline: {
-    fontSize: 22,
+    fontFamily: FONTS.display,
+    fontSize: 24,
     fontWeight: '700',
     color: '#111111',
     textAlign: 'center',
     marginBottom: 10,
   },
   emptySubtitle: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     lineHeight: 22,
     color: '#9ca3af',
@@ -383,6 +388,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   startShoppingBtnText: {
+    fontFamily: FONTS.body,
     color: '#ffffff',
     fontSize: 17,
     fontWeight: '700',
@@ -416,6 +422,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   rowErrorText: {
+    fontFamily: FONTS.body,
     fontSize: 13,
     fontWeight: '600',
     color: BRAND.maroonPrimary,
@@ -447,18 +454,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   productName: {
+    fontFamily: FONTS.body,
     fontSize: 16,
     fontWeight: '600',
     color: '#111111',
     paddingRight: 8,
   },
   unitPrice: {
+    fontFamily: FONTS.body,
     marginTop: 4,
     fontSize: 15,
     fontWeight: '700',
     color: '#111111',
   },
   stockHint: {
+    fontFamily: FONTS.body,
     marginTop: 4,
     fontSize: 12,
     color: '#6b7280',
@@ -491,10 +501,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   summaryLabel: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: '#6b7280',
   },
   summaryValue: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '600',
     color: '#111111',
@@ -506,16 +518,19 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   totalLabel: {
+    fontFamily: FONTS.body,
     fontSize: 16,
     fontWeight: '700',
     color: '#111111',
   },
   totalValue: {
+    fontFamily: FONTS.body,
     fontSize: 17,
     fontWeight: '700',
     color: '#111111',
   },
   checkoutBlockedHint: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 13,
     fontWeight: '600',
@@ -533,6 +548,7 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   paymentBtnText: {
+    fontFamily: FONTS.body,
     color: '#ffffff',
     fontSize: 17,
     fontWeight: '700',

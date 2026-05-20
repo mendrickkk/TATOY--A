@@ -16,7 +16,7 @@ import type {StackNavigationProp} from '@react-navigation/stack';
 import {GoogleSigninButton} from '@react-native-google-signin/google-signin';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
-import {IMG, ROUTES} from '../../utils';
+import {FONTS, IMG, ROUTES} from '../../utils';
 import {authLogin, USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {RootState} from '../../app/reducers';
 import type {AuthStackParamList} from '../../navigation/types';
@@ -202,6 +202,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   title: {
+    fontFamily: FONTS.display,
     fontSize: 28,
     fontWeight: '300',
     color: MAROON,
@@ -210,6 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   subtitle: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: SUBTEXT_GRAY,
     textAlign: 'center',
@@ -217,6 +219,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   input: {
+    fontFamily: FONTS.body,
     width: '100%',
     borderWidth: 1,
     borderColor: BORDER,
@@ -236,6 +239,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   passwordInput: {
+    fontFamily: FONTS.body,
     flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -248,6 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   forgotText: {
+    fontFamily: FONTS.body,
     fontSize: 13,
     color: MUTED_GRAY,
   },
@@ -263,6 +268,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   primaryButtonText: {
+    fontFamily: FONTS.body,
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
@@ -280,10 +286,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerMuted: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: MUTED_GRAY,
   },
   footerLink: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '700',
     color: LINK_DARK,

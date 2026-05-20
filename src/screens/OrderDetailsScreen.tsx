@@ -25,7 +25,7 @@ import {
   isOrderCancellable,
   isOrderNonCancellableFinal,
 } from '../types/order';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 import {
   formatOrderDate,
   formatOrderStatusLabel,
@@ -264,6 +264,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   orderId: {
+    fontFamily: FONTS.display,
     fontSize: 26,
     fontWeight: '800',
     color: '#111111',
@@ -278,16 +279,19 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   statusText: {
+    fontFamily: FONTS.body,
     fontSize: 13,
     fontWeight: '600',
     color: BRAND.maroonPrimary,
   },
   dateLine: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 16,
     color: '#6b7280',
   },
   totalLine: {
+    fontFamily: FONTS.body,
     marginTop: 6,
     fontSize: 17,
     fontWeight: '700',
@@ -303,6 +307,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   addressLabel: {
+    fontFamily: FONTS.body,
     fontSize: 12,
     fontWeight: '700',
     color: '#6b7280',
@@ -310,15 +315,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   addressValue: {
+    fontFamily: FONTS.body,
     marginTop: 6,
     fontSize: 15,
     lineHeight: 22,
     color: '#111111',
   },
   itemsHeading: {
+    fontFamily: FONTS.display,
     marginTop: 28,
     marginBottom: 14,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#111111',
   },
@@ -347,22 +354,26 @@ const styles = StyleSheet.create({
     minHeight: 72,
   },
   itemName: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '700',
     color: '#111111',
   },
   itemMeta: {
+    fontFamily: FONTS.body,
     marginTop: 4,
     fontSize: 13,
     color: '#6b7280',
   },
   itemPrice: {
+    fontFamily: FONTS.body,
     marginTop: 6,
     fontSize: 16,
     fontWeight: '700',
     color: BRAND.maroonPrimary,
   },
   noItems: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: '#6b7280',
   },
@@ -373,12 +384,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cancelHint: {
+    fontFamily: FONTS.body,
     fontSize: 14,
     lineHeight: 21,
     color: '#6b7280',
     textAlign: 'center',
   },
   cancelError: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 13,
     color: '#a40000',
@@ -403,6 +416,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   cancelBtnText: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '700',
     color: BRAND.maroonPrimary,
@@ -414,6 +428,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   finalNoticeText: {
+    fontFamily: FONTS.body,
     fontSize: 14,
     lineHeight: 21,
     color: '#6b7280',
@@ -431,12 +446,14 @@ const styles = StyleSheet.create({
     padding: 22,
   },
   modalTitle: {
-    fontSize: 18,
+    fontFamily: FONTS.display,
+    fontSize: 20,
     fontWeight: '700',
     color: '#111111',
     textAlign: 'center',
   },
   modalMessage: {
+    fontFamily: FONTS.body,
     marginTop: 12,
     fontSize: 15,
     lineHeight: 22,
@@ -444,6 +461,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalError: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 13,
     color: '#a40000',
@@ -476,11 +494,13 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   modalBtnSecondaryText: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '600',
     color: '#374151',
   },
   modalBtnPrimaryText: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     fontWeight: '700',
     color: BRAND.maroonPrimary,

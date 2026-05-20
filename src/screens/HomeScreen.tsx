@@ -27,7 +27,7 @@ import ShopSearchBar from '../components/ShopSearchBar';
 import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
-import {BRAND, ROUTES} from '../utils';
+import {BRAND, FONTS, ROUTES} from '../utils';
 import {filterProductsByQuery} from '../utils/productSearch';
 import {lowStockLabel} from '../utils/stock';
 import {getUserDisplayName} from '../utils/userDisplayName';
@@ -336,12 +336,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitlePopular: {
-    fontSize: 18,
+    fontFamily: FONTS.display,
+    fontSize: 20,
     fontWeight: '700',
     color: BRAND.productTitle,
     letterSpacing: -0.3,
   },
   seeAll: {
+    fontFamily: FONTS.body,
     fontSize: 14,
     fontWeight: '600',
     color: BRAND.maroonPrimary,
@@ -399,11 +401,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   lowStockText: {
+    fontFamily: FONTS.body,
     fontSize: 10,
     fontWeight: '700',
     color: '#ffffff',
   },
   tilePrice: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 15,
     fontWeight: '700',
@@ -411,12 +415,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stateSubtext: {
+    fontFamily: FONTS.body,
     marginTop: 10,
     fontSize: 14,
     color: '#666666',
     textAlign: 'center',
   },
   errorText: {
+    fontFamily: FONTS.body,
     fontSize: 15,
     color: '#a40000',
     textAlign: 'center',
@@ -430,12 +436,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
+    fontFamily: FONTS.body,
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '600',
   },
   emptyTitle: {
-    fontSize: 17,
+    fontFamily: FONTS.display,
+    fontSize: 18,
     fontWeight: '700',
     color: '#333333',
   },
