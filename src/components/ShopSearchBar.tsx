@@ -1,7 +1,9 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {
   Alert,
+  Keyboard,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -14,6 +16,10 @@ import {IconScanner, IconSearch, IconSliders} from './ShopHeaderIcons';
 
 export type ShopSearchBarProps = {
   style?: StyleProp<ViewStyle>;
+  value: string;
+  onChangeText: (text: string) => void;
+  onSubmitEditing?: () => void;
+  placeholder?: string;
 };
 
 const styles = StyleSheet.create({
@@ -39,6 +45,19 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     paddingVertical: 0,
   },
+  clearBtn: {
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 28,
+    minHeight: 28,
+  },
+  clearText: {
+    fontSize: 22,
+    lineHeight: 24,
+    color: '#6e6e6e',
+    fontWeight: '500',
+  },
   filterBtn: {
     width: 48,
     height: 48,
@@ -49,8 +68,17 @@ const styles = StyleSheet.create({
   },
 });
 
-const ShopSearchBar = ({style}: ShopSearchBarProps) => {
-  const [query, setQuery] = useState('');
+const ShopSearchBar = ({
+  style,
+  value,
+  onChangeText,
+  onSubmitEditing,
+  placeholder = 'Search',
+}: ShopSearchBarProps) => {
+  const handleSubmit = () => {
+    Keyboard.dismiss();
+    onSubmitEditing?.();
+  };
 
   return (
     <View style={[styles.row, style]}>
@@ -58,14 +86,26 @@ const ShopSearchBar = ({style}: ShopSearchBarProps) => {
         <IconSearch color={BRAND.iconTint} size={22} />
         <TextInput
           style={styles.input}
-          placeholder="Search"
+          placeholder={placeholder}
           placeholderTextColor="#9a9a9a"
-          value={query}
-          onChangeText={setQuery}
+          value={value}
+          onChangeText={onChangeText}
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
+          onSubmitEditing={handleSubmit}
+          accessibilityLabel="Search bouquets by name"
         />
+        {value.length > 0 ? (
+          <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={() => onChangeText('')}
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search">
+            <Text style={styles.clearText}>×</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           onPress={() =>
             Alert.alert('Scanner', 'Barcode scanning is coming soon.', [{text: 'OK'}])

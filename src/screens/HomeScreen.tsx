@@ -28,6 +28,7 @@ import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
+import {filterProductsByQuery} from '../utils/productSearch';
 import {lowStockLabel} from '../utils/stock';
 import {getUserDisplayName} from '../utils/userDisplayName';
 
@@ -49,6 +50,7 @@ const HomeScreen = () => {
   const displayName = getUserDisplayName(auth.data);
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,8 +108,16 @@ const HomeScreen = () => {
           StatusBar.setBackgroundColor('#ffffff');
         }
       };
-    }, [loadProducts]),
+    },     [loadProducts]),
   );
+
+  const filteredProducts = useMemo(
+    () => filterProductsByQuery(products, searchQuery),
+    [products, searchQuery],
+  );
+
+  const trimmedSearch = searchQuery.trim();
+  const isSearchActive = trimmedSearch.length > 0;
 
   const listHeader = useMemo(() => {
     const paddingTop = Math.max(insets.top, 12);
@@ -119,11 +129,15 @@ const HomeScreen = () => {
             onPressNotifications={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
             notificationBadge={DEMO_BADGE}
           />
-          <ShopSearchBar style={styles.searchSpacing} />
+          <ShopSearchBar
+            style={styles.searchSpacing}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
       </View>
     );
-  }, [displayName, insets.top, navigation]);
+  }, [displayName, insets.top, navigation, searchQuery]);
 
   const openProductDetail = useCallback(
     (item: Product) => {
@@ -210,6 +224,14 @@ const HomeScreen = () => {
         </View>
       );
     }
+    if (isSearchActive && filteredProducts.length === 0) {
+      return (
+        <View style={styles.railState}>
+          <Text style={styles.emptyTitle}>No bouquets found</Text>
+          <Text style={styles.stateSubtext}>Try a different name</Text>
+        </View>
+      );
+    }
     return (
       <ScrollView
         horizontal
@@ -217,7 +239,7 @@ const HomeScreen = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.railScrollContent}
         keyboardShouldPersistTaps="always">
-        {products.map((item, index) => (
+        {filteredProducts.map((item, index) => (
           <React.Fragment key={`${item.id}-${index}`}>
             {index > 0 ? <View style={styles.railSep} /> : null}
             {renderProductTile({item})}
@@ -225,7 +247,15 @@ const HomeScreen = () => {
         ))}
       </ScrollView>
     );
-  }, [error, loading, loadProducts, products, renderProductTile]);
+  }, [
+    error,
+    filteredProducts,
+    isSearchActive,
+    loading,
+    loadProducts,
+    products.length,
+    renderProductTile,
+  ]);
 
   return (
     <View style={styles.screen}>
@@ -247,12 +277,19 @@ const HomeScreen = () => {
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitlePopular}>Popular bouquets</Text>
             <TouchableOpacity
-              onPress={() =>
+              onPress={() => {
+                const listForSeeAll =
+                  products.length > 0
+                    ? isSearchActive
+                      ? filteredProducts
+                      : products
+                    : undefined;
                 navigation.navigate(ROUTES.POPULAR_BOUQUETS, {
-                  products: products.length > 0 ? products : undefined,
+                  products: listForSeeAll,
                   apiBaseUrl: apiBaseUrl.trim() ? apiBaseUrl : undefined,
-                })
-              }
+                  ...(isSearchActive ? {initialSearchQuery: trimmedSearch} : {}),
+                });
+              }}
               accessibilityRole="button"
               accessibilityLabel="See all bouquets"
               hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>

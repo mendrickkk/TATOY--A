@@ -24,6 +24,7 @@ import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
+import {filterProductsByQuery} from '../utils/productSearch';
 
 const H_PAD = 16;
 const COL_GAP = 12;
@@ -46,6 +47,7 @@ const PopularBouquetsScreen = () => {
 
   const initialProducts = route.params?.products;
   const initialBase = route.params?.apiBaseUrl?.trim() ?? '';
+  const initialSearchQuery = route.params?.initialSearchQuery?.trim() ?? '';
 
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [apiBaseUrl, setApiBaseUrl] = useState(initialBase);
@@ -56,6 +58,11 @@ const PopularBouquetsScreen = () => {
   const cellW = useMemo(
     () => Math.max(120, Math.floor((windowW - H_PAD * 2 - COL_GAP) / 2)),
     [windowW],
+  );
+
+  const displayProducts = useMemo(
+    () => filterProductsByQuery(products, initialSearchQuery),
+    [products, initialSearchQuery],
   );
 
   const getToken = useCallback(() => extractBearerJwtFromAuthData(auth.data), [auth.data]);
@@ -152,7 +159,7 @@ const PopularBouquetsScreen = () => {
     [apiBaseUrl, cellW, openDetail],
   );
 
-  if (loading && products.length === 0) {
+  if (loading && displayProducts.length === 0 && products.length === 0) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={BRAND.maroonPrimary} />
@@ -175,7 +182,7 @@ const PopularBouquetsScreen = () => {
   return (
     <View style={styles.screen}>
       <FlatList
-        data={products}
+        data={displayProducts}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         numColumns={2}
         columnWrapperStyle={styles.row}
@@ -191,7 +198,14 @@ const PopularBouquetsScreen = () => {
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Text style={styles.hint}>No bouquets to show.</Text>
+            {initialSearchQuery ? (
+              <>
+                <Text style={styles.emptyTitle}>No bouquets found</Text>
+                <Text style={styles.hint}>Try a different name</Text>
+              </>
+            ) : (
+              <Text style={styles.hint}>No bouquets to show.</Text>
+            )}
           </View>
         }
       />
@@ -252,6 +266,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 15,
     color: '#666666',
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333333',
+    textAlign: 'center',
   },
   error: {
     fontSize: 15,

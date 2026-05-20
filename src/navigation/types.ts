@@ -20,6 +20,8 @@ export type HomeStackParamList = {
   [ROUTES.POPULAR_BOUQUETS]: {
     products?: Product[];
     apiBaseUrl?: string;
+    /** When set, catalog list is filtered client-side (e.g. from Home search). */
+    initialSearchQuery?: string;
   };
   [ROUTES.CHECKOUT]: undefined;
   [ROUTES.ORDER_SUCCESS]: {
