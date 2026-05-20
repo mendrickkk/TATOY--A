@@ -1,4 +1,5 @@
 import {
+  AUTH_PROFILE_UPDATE,
   RESET_USER_LOGIN,
   USER_LOGIN_COMPLETE,
   USER_LOGIN_ERROR,
@@ -50,6 +51,13 @@ export default function reducer(
         isLoading: false,
         isError: true,
         error: action.error || 'Login failed',
+      };
+    case AUTH_PROFILE_UPDATE:
+      return {
+        ...state,
+        data: action.payload ?? state.data,
+        isError: false,
+        error: null,
       };
     case RESET_USER_LOGIN:
       return INITIAL_STATE;

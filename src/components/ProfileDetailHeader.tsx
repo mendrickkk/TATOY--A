@@ -1,8 +1,8 @@
 import React from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {FONTS} from '../utils';
+import {BRAND, FONTS} from '../utils';
 import {IconPencil} from './ProfileMenuIcons';
 
 type Props = {
@@ -10,6 +10,9 @@ type Props = {
   onBack: () => void;
   onEdit?: () => void;
   showEdit?: boolean;
+  isEditing?: boolean;
+  onSave?: () => void;
+  saving?: boolean;
 };
 
 /** Centered title with circular back / optional edit (Profile sub-screens). */
@@ -18,6 +21,9 @@ const ProfileDetailHeader = ({
   onBack,
   onEdit,
   showEdit = true,
+  isEditing = false,
+  onSave,
+  saving = false,
 }: Props) => {
   const insets = useSafeAreaInsets();
 
@@ -36,7 +42,20 @@ const ProfileDetailHeader = ({
           {title}
         </Text>
 
-        {showEdit && onEdit ? (
+        {isEditing && onSave ? (
+          <Pressable
+            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+            onPress={onSave}
+            disabled={saving}
+            accessibilityRole="button"
+            accessibilityLabel="Save profile">
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.saveBtnText}>Save</Text>
+            )}
+          </Pressable>
+        ) : showEdit && onEdit ? (
           <Pressable
             style={styles.circleBtn}
             onPress={onEdit}
@@ -74,6 +93,24 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
     height: 40,
+  },
+  saveBtn: {
+    minWidth: 64,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: BRAND.maroonPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
+  },
+  saveBtnText: {
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
   },
   backChevron: {
     fontSize: 26,

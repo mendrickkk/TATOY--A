@@ -264,6 +264,124 @@ export type ChangePasswordParams = {
   newPassword: string;
 };
 
+export type UpdateProfileParams = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+};
+
+function buildProfileBody(params: UpdateProfileParams): Record<string, string> {
+  const firstName = params.firstName.trim();
+  const lastName = params.lastName.trim();
+  const email = params.email.trim();
+  const username = params.username.trim();
+  return {
+    firstName,
+    lastName,
+    email,
+    username,
+    first_name: firstName,
+    last_name: lastName,
+  };
+}
+
+/**
+ * Updates profile on Symfony (tries common routes). Returns parsed JSON or `{ success: true }`.
+ */
+export async function updateProfile(
+  bearerToken: string,
+  params: UpdateProfileParams,
+): Promise<unknown> {
+  const token = bearerToken.trim();
+  if (!token) {
+    throw new Error('You must be signed in to update your profile.');
+  }
+
+  const body = buildProfileBody(params);
+  const paths = ['/api/profile', '/api/user/profile', '/api/users/me', '/api/me'];
+  const methods: RequestInit['method'][] = ['PUT', 'PATCH'];
+
+  let lastConnectionError: Error | null = null;
+  let lastApiError: Error | null = null;
+
+  for (const baseUrl of getApiBaseCandidates()) {
+    for (const path of paths) {
+      for (const method of methods) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        try {
+          const response = await fetch(`${baseUrl}${path}`, {
+            method,
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          let rawText = '';
+          try {
+            rawText = await response.text();
+          } catch {
+            rawText = '';
+          }
+
+          let data: unknown = null;
+          if (rawText) {
+            try {
+              data = JSON.parse(rawText) as LoginErrorPayload;
+            } catch {
+              data = {text: rawText};
+            }
+          }
+
+          if (response.ok) {
+            return data ?? {success: true};
+          }
+
+          if (response.status === 404 || response.status === 405) {
+            const message = apiErrorMessageFromBody(data, 'Profile update not available');
+            lastApiError = new Error(`${message} (HTTP ${response.status})`) as LoginError;
+            (lastApiError as LoginError).status = response.status;
+            continue;
+          }
+
+          const message = apiErrorMessageFromBody(data, 'Could not update profile');
+          const error = new Error(`${message} (HTTP ${response.status})`) as LoginError;
+          error.status = response.status;
+          error.payload = data;
+          throw error;
+        } catch (err: unknown) {
+          clearTimeout(timeoutId);
+          if (err instanceof Error && err.name === 'AbortError') {
+            lastConnectionError = new Error(
+              `Connection timed out reaching ${baseUrl}. Check that the server is running.`,
+            );
+          } else if (err instanceof Error && !(err as LoginError).status) {
+            lastConnectionError = normalizeFetchConnectionError(err);
+          } else if (err instanceof Error) {
+            throw err;
+          }
+        }
+      }
+    }
+  }
+
+  if (lastApiError) {
+    throw lastApiError;
+  }
+
+  throw (
+    lastConnectionError ||
+    new Error('Connection failed. Check that the server is running and reachable.')
+  );
+}
+
 /** POST /api/change-password with Bearer JWT. */
 export async function changePassword(
   bearerToken: string,
