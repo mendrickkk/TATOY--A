@@ -6,6 +6,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import rootSaga from './src/app/sagas';
 import configureStore from './src/app/reducers';
+import {AppAlertProvider} from './src/components/app_alert';
 import toastConfig from './src/components/alert_messages/config';
 import {CartProvider} from './src/context/CartContext';
 import {FavoritesProvider} from './src/context/FavoritesContext';
@@ -24,14 +25,16 @@ const App = () => {
       <Provider store={store}>
         <SessionSync />
         <SafeAreaProvider>
-          <FavoritesProvider>
-            <CartProvider>
-              <View style={styles.appRoot}>
-                <AppNav />
-                <Toast config={toastConfig} />
-              </View>
-            </CartProvider>
-          </FavoritesProvider>
+          <AppAlertProvider>
+            <FavoritesProvider>
+              <CartProvider>
+                <View style={styles.appRoot}>
+                  <AppNav />
+                  <Toast config={toastConfig} />
+                </View>
+              </CartProvider>
+            </FavoritesProvider>
+          </AppAlertProvider>
         </SafeAreaProvider>
       </Provider>
     </GestureHandlerRootView>

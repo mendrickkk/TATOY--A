@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,7 +20,7 @@ import {extractBearerJwtFromAuthData} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import ProfileDetailHeader from '../components/ProfileDetailHeader';
 import ProfileTextField from '../components/ProfileTextField';
-import {showError, showSuccess} from '../components/alert_messages';
+import {AppAlert, showError, showSuccess} from '../components/alert_messages';
 import type {ProfileStackParamList} from '../navigation/types';
 import {
   getAuthProfileFields,
@@ -106,7 +105,7 @@ const ProfileInfoScreen = () => {
       navigation.goBack();
       return;
     }
-    Alert.alert('Discard changes?', 'Your edits have not been saved.', [
+    AppAlert.alert('Discard changes?', 'Your edits have not been saved.', [
       {text: 'Keep editing', style: 'cancel'},
       {
         text: 'Discard',
@@ -120,7 +119,7 @@ const ProfileInfoScreen = () => {
   }, [editing, exitEditMode, navigation]);
 
   const onCancelEdit = useCallback(() => {
-    Alert.alert('Discard changes?', 'Your edits have not been saved.', [
+    AppAlert.alert('Discard changes?', 'Your edits have not been saved.', [
       {text: 'Keep editing', style: 'cancel'},
       {text: 'Discard', style: 'destructive', onPress: exitEditMode},
     ]);
@@ -148,7 +147,7 @@ const ProfileInfoScreen = () => {
   const onSave = useCallback(async () => {
     const validationError = validateForm();
     if (validationError) {
-      Alert.alert('Check your details', validationError);
+      AppAlert.alert('Check your details', validationError);
       return;
     }
 

@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,7 +20,7 @@ import {authLogin, USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {RootState} from '../../app/reducers';
 import type {AuthStackParamList} from '../../navigation/types';
 import sign_in_with_google from '../../utils/firebase';
-import {showSuccess} from '../../components/alert_messages';
+import {AppAlert, showSuccess} from '../../components/alert_messages';
 
 type NavProp = StackNavigationProp<AuthStackParamList>;
 
@@ -43,7 +42,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!auth.isLoading && auth.isError && auth.error) {
-      Alert.alert('Login failed', auth.error);
+      AppAlert.alert('Login failed', auth.error);
     }
   }, [auth.isLoading, auth.isError, auth.error]);
 
@@ -89,7 +88,7 @@ const Login = () => {
             <TouchableOpacity
               style={styles.forgotWrap}
               onPress={() =>
-                Alert.alert(
+                AppAlert.alert(
                   'Forgot password?',
                   'Password recovery is not available in the app yet. Please contact support if you need help.',
                 )
@@ -104,7 +103,7 @@ const Login = () => {
             disabled={auth.isLoading}
             onPress={() => {
               if (username === '' || password === '') {
-                Alert.alert(
+                AppAlert.alert(
                   'Invalid Credentials',
                   'Please enter your e-mail and password.',
                 );
@@ -160,7 +159,7 @@ const Login = () => {
               } catch (error) {
                 const message =
                   error instanceof Error ? error.message : 'Google sign-in failed';
-                Alert.alert('Google sign-in failed', message);
+                AppAlert.alert('Google sign-in failed', message);
               } finally {
                 setIsGoogleLoading(false);
               }

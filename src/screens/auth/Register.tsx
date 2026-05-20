@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,7 +20,7 @@ import {FONTS, IMG, ROUTES} from '../../utils';
 import {USER_LOGIN_COMPLETE} from '../../app/actions';
 import type {AuthStackParamList} from '../../navigation/types';
 import sign_in_with_google from '../../utils/firebase';
-import {showSuccess} from '../../components/alert_messages';
+import {AppAlert, showSuccess} from '../../components/alert_messages';
 
 type NavProp = StackNavigationProp<AuthStackParamList>;
 
@@ -48,19 +47,19 @@ const Register = () => {
 
   const onRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      Alert.alert('Missing fields', 'Please fill in your first name, last name, and email.');
+      AppAlert.alert('Missing fields', 'Please fill in your first name, last name, and email.');
       return;
     }
     if (!password || !confirmPassword) {
-      Alert.alert('Missing fields', 'Please enter and confirm your password.');
+      AppAlert.alert('Missing fields', 'Please enter and confirm your password.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Password mismatch', 'Password and confirm password must match.');
+      AppAlert.alert('Password mismatch', 'Password and confirm password must match.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Invalid password', 'Password must be at least 6 characters.');
+      AppAlert.alert('Invalid password', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -81,12 +80,12 @@ const Register = () => {
           ? data.message
           : 'Registration complete. You can sign in after verifying your email if required.';
 
-      Alert.alert('Success', message, [
+      AppAlert.alert('Success', message, [
         {text: 'OK', onPress: () => navigation.navigate(ROUTES.LOGIN)},
       ]);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed';
-      Alert.alert('Registration failed', message);
+      AppAlert.alert('Registration failed', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -232,7 +231,7 @@ const Register = () => {
               } catch (error) {
                 const message =
                   error instanceof Error ? error.message : 'Google sign-in failed';
-                Alert.alert('Google sign-in failed', message);
+                AppAlert.alert('Google sign-in failed', message);
               } finally {
                 setIsGoogleLoading(false);
               }

@@ -1,7 +1,6 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,7 +19,7 @@ import {extractBearerJwtFromAuthData} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import ProfileDetailHeader from '../components/ProfileDetailHeader';
 import ProfilePasswordField from '../components/ProfilePasswordField';
-import {showSuccess} from '../components/alert_messages';
+import {AppAlert, showSuccess} from '../components/alert_messages';
 import type {ProfileStackParamList} from '../navigation/types';
 import {BRAND, FONTS, ROUTES} from '../utils';
 
@@ -49,7 +48,7 @@ const ChangePasswordScreen = () => {
 
   const onSave = useCallback(async () => {
     if (googleAccount) {
-      Alert.alert(
+      AppAlert.alert(
         'Google account',
         'Password is managed by Google Sign-In. Use your Google account settings to change it.',
       );
@@ -57,29 +56,29 @@ const ChangePasswordScreen = () => {
     }
 
     if (!currentPassword.trim()) {
-      Alert.alert('Missing field', 'Enter your current password.');
+      AppAlert.alert('Missing field', 'Enter your current password.');
       return;
     }
     if (!newPassword) {
-      Alert.alert('Missing field', 'Enter a new password.');
+      AppAlert.alert('Missing field', 'Enter a new password.');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Invalid password', 'New password must be at least 6 characters.');
+      AppAlert.alert('Invalid password', 'New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Password mismatch', 'New password and confirm password must match.');
+      AppAlert.alert('Password mismatch', 'New password and confirm password must match.');
       return;
     }
     if (currentPassword === newPassword) {
-      Alert.alert('Same password', 'Choose a different password than your current one.');
+      AppAlert.alert('Same password', 'Choose a different password than your current one.');
       return;
     }
 
     const token = extractBearerJwtFromAuthData(auth.data);
     if (!token) {
-      Alert.alert(
+      AppAlert.alert(
         'Not available',
         'Your session does not support password change. Try signing out and back in with email and password.',
       );
@@ -102,7 +101,7 @@ const ChangePasswordScreen = () => {
       navigation.goBack();
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not change password';
-      Alert.alert('Change password failed', message);
+      AppAlert.alert('Change password failed', message);
     } finally {
       setSaving(false);
     }

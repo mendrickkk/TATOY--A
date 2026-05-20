@@ -1,46 +1,47 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  ActivityIndicator,
-  Image,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useSelector} from 'react-redux';
 
-import {extractBearerJwtFromAuthData, fetchProducts, getProductImageUri} from '../app/api/products';
+import {extractBearerJwtFromAuthData, fetchProducts} from '../app/api/products';
 import {isSessionExpiredError} from '../app/api/session';
 import type {RootState} from '../app/reducers';
 import AppHeader from '../components/AppHeader';
-import FavoriteHeartButton from '../components/FavoriteHeartButton';
 import HeroCarousel from '../components/HeroCarousel';
+import HomeChipScroller from '../components/home/HomeChipScroller';
+import HomeProductRail from '../components/home/HomeProductRail';
+import HomePromoBanner from '../components/home/HomePromoBanner';
+import HomeQuickActions from '../components/home/HomeQuickActions';
+import HomeSectionHeader from '../components/home/HomeSectionHeader';
+import HomeTrustStrip from '../components/home/HomeTrustStrip';
 import ShopSearchBar from '../components/ShopSearchBar';
 import {useFavorites} from '../context/FavoritesContext';
-import type {RootStackParamList} from '../navigation/types';
+import type {MainTabParamList, RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, FONTS, ROUTES} from '../utils';
-import {filterProductsByQuery} from '../utils/productSearch';
-import {lowStockLabel} from '../utils/stock';
+import {
+  filterHomeCatalog,
+  HOME_OCCASIONS,
+  pickFreshPicks,
+  pickPopularProducts,
+} from '../utils/homeCatalog';
 import {getUserDisplayName} from '../utils/userDisplayName';
 
 type NavProp = StackNavigationProp<RootStackParamList>;
+type TabNavProp = BottomTabNavigationProp<MainTabParamList>;
 
 const DEMO_BADGE: number | boolean = true;
-
-const priceFormatter = new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
-  maximumFractionDigits: 2,
-});
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavProp>();
@@ -51,6 +52,7 @@ const HomeScreen = () => {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [occasionFilter, setOccasionFilter] = useState<string | null>(null);
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,36 +110,25 @@ const HomeScreen = () => {
           StatusBar.setBackgroundColor('#ffffff');
         }
       };
-    },     [loadProducts]),
-  );
-
-  const filteredProducts = useMemo(
-    () => filterProductsByQuery(products, searchQuery),
-    [products, searchQuery],
+    }, [loadProducts]),
   );
 
   const trimmedSearch = searchQuery.trim();
   const isSearchActive = trimmedSearch.length > 0;
+  const hasCatalogFilters = Boolean(occasionFilter);
 
-  const listHeader = useMemo(() => {
-    const paddingTop = Math.max(insets.top, 12);
-    return (
-      <View>
-        <View style={[styles.hero, {paddingTop}]}>
-          <AppHeader
-            userDisplayName={displayName}
-            onPressNotifications={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
-            notificationBadge={DEMO_BADGE}
-          />
-          <ShopSearchBar
-            style={styles.searchSpacing}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-      </View>
-    );
-  }, [displayName, insets.top, navigation, searchQuery]);
+  const catalogProducts = useMemo(
+    () =>
+      filterHomeCatalog(products, {
+        searchQuery,
+        categoryId: null,
+        occasionId: occasionFilter,
+      }),
+    [products, searchQuery, occasionFilter],
+  );
+
+  const popularProducts = useMemo(() => pickPopularProducts(catalogProducts), [catalogProducts]);
+  const freshPicks = useMemo(() => pickFreshPicks(catalogProducts), [catalogProducts]);
 
   const openProductDetail = useCallback(
     (item: Product) => {
@@ -150,112 +141,53 @@ const HomeScreen = () => {
     [apiBaseUrl, navigation, products],
   );
 
-  const renderProductTile = useCallback(
-    ({item}: {item: Product}) => {
-      const uri = getProductImageUri(apiBaseUrl, item.image);
-      const scarcity = lowStockLabel(item);
-      return (
-        <Pressable
-          style={({pressed}) => [styles.tileWrap, pressed && styles.tilePressed]}
-          accessibilityRole="button"
-          accessibilityLabel={`${item.name}, ${priceFormatter.format(item.price)}${scarcity ? `, ${scarcity}` : ''}`}
-          onPress={() => openProductDetail(item)}
-          android_ripple={{color: 'rgba(110, 15, 15, 0.12)', borderless: false}}>
-          <View style={styles.tileImageShell}>
-            {uri ? (
-              <View style={styles.tileImage} pointerEvents="none">
-                <Image
-                  source={{uri}}
-                  style={StyleSheet.absoluteFillObject}
-                  resizeMode="cover"
-                  accessibilityLabel={item.name}
-                />
-              </View>
-            ) : (
-              <View style={[styles.tileImage, styles.tileImagePlaceholder]} />
-            )}
-            {scarcity ? (
-              <View style={styles.lowStockBadge} pointerEvents="none">
-                <Text style={styles.lowStockText}>{scarcity}</Text>
-              </View>
-            ) : null}
-            <FavoriteHeartButton
-              product={item}
-              apiBaseUrl={apiBaseUrl}
-              size="sm"
-              style={styles.tileHeart}
-            />
-          </View>
-          <Text style={styles.tilePrice}>{priceFormatter.format(item.price)}</Text>
-        </Pressable>
-      );
+  const navigateSeeAll = useCallback(
+    (list: Product[]) => {
+      navigation.navigate(ROUTES.POPULAR_BOUQUETS, {
+        products: list.length > 0 ? list : undefined,
+        apiBaseUrl: apiBaseUrl.trim() ? apiBaseUrl : undefined,
+        ...(isSearchActive ? {initialSearchQuery: trimmedSearch} : {}),
+      });
     },
-    [apiBaseUrl, openProductDetail],
+    [apiBaseUrl, isSearchActive, navigation, trimmedSearch],
   );
 
-  const productRail = useMemo(() => {
-    if (loading && products.length === 0) {
-      return (
-        <View style={styles.railState} accessibilityLabel="Loading products">
-          <ActivityIndicator size="large" color={BRAND.maroonPrimary} />
-          <Text style={styles.stateSubtext}>Loading products…</Text>
-        </View>
-      );
+  const openMyOrders = useCallback(() => {
+    navigation.getParent<TabNavProp>()?.navigate(ROUTES.TAB_PROFILE, {
+      screen: ROUTES.MY_ORDERS,
+    });
+  }, [navigation]);
+
+  const railEmpty = useMemo(() => {
+    if (isSearchActive) {
+      return {title: 'No bouquets found', subtitle: 'Try a different name or clear filters.'};
     }
-    if (error) {
-      return (
-        <View style={styles.railState}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => loadProducts('retry')}
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading products">
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      );
+    if (hasCatalogFilters) {
+      return {title: 'No matches', subtitle: 'Try another occasion.'};
     }
-    if (products.length === 0) {
-      return (
-        <View style={styles.railState}>
-          <Text style={styles.emptyTitle}>No products yet</Text>
-          <Text style={styles.stateSubtext}>Check back later or pull down to refresh.</Text>
-        </View>
-      );
-    }
-    if (isSearchActive && filteredProducts.length === 0) {
-      return (
-        <View style={styles.railState}>
-          <Text style={styles.emptyTitle}>No bouquets found</Text>
-          <Text style={styles.stateSubtext}>Try a different name</Text>
-        </View>
-      );
-    }
+    return {title: 'No products yet', subtitle: 'Check back later or pull down to refresh.'};
+  }, [hasCatalogFilters, isSearchActive]);
+
+  const listHeader = useMemo(() => {
+    const paddingTop = Math.max(insets.top, 12);
     return (
-      <ScrollView
-        horizontal
-        nestedScrollEnabled
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.railScrollContent}
-        keyboardShouldPersistTaps="always">
-        {filteredProducts.map((item, index) => (
-          <React.Fragment key={`${item.id}-${index}`}>
-            {index > 0 ? <View style={styles.railSep} /> : null}
-            {renderProductTile({item})}
-          </React.Fragment>
-        ))}
-      </ScrollView>
+      <View style={[styles.hero, {paddingTop}]}>
+        <AppHeader
+          userDisplayName={displayName}
+          onPressNotifications={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
+          notificationBadge={DEMO_BADGE}
+        />
+        <Text style={styles.tagline}>Fresh blooms, crafted for every occasion</Text>
+        <ShopSearchBar
+          style={styles.searchSpacing}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
     );
-  }, [
-    error,
-    filteredProducts,
-    isSearchActive,
-    loading,
-    loadProducts,
-    products.length,
-    renderProductTile,
-  ]);
+  }, [displayName, insets.top, navigation, searchQuery]);
+
+  const showBrowseSections = !isSearchActive;
 
   return (
     <View style={styles.screen}>
@@ -272,38 +204,87 @@ const HomeScreen = () => {
           />
         }>
         {listHeader}
-        <View style={styles.bodyTop}>
+
+        <View style={styles.body}>
           <HeroCarousel />
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitlePopular}>Popular bouquets</Text>
-            <TouchableOpacity
-              onPress={() => {
-                const listForSeeAll =
-                  products.length > 0
-                    ? isSearchActive
-                      ? filteredProducts
-                      : products
-                    : undefined;
-                navigation.navigate(ROUTES.POPULAR_BOUQUETS, {
-                  products: listForSeeAll,
-                  apiBaseUrl: apiBaseUrl.trim() ? apiBaseUrl : undefined,
-                  ...(isSearchActive ? {initialSearchQuery: trimmedSearch} : {}),
-                });
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="See all bouquets"
-              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
+
+          {showBrowseSections ? (
+            <>
+              <HomeQuickActions onPressOrders={openMyOrders} />
+
+              <View style={[styles.section, styles.filterSection]}>
+                <HomeSectionHeader
+                  title="Shop by occasion"
+                  subtitle="Find the right bouquet"
+                  compact
+                />
+                <HomeChipScroller
+                  chips={HOME_OCCASIONS}
+                  selectedId={occasionFilter}
+                  onSelect={setOccasionFilter}
+                  topSpacing={10}
+                />
+              </View>
+
+              <HomePromoBanner />
+            </>
+          ) : null}
+
+          <View style={styles.section}>
+            <HomeSectionHeader
+              title={
+                isSearchActive
+                  ? 'Search results'
+                  : hasCatalogFilters
+                    ? 'Filtered bouquets'
+                    : 'Popular bouquets'
+              }
+              subtitle={
+                isSearchActive
+                  ? `${catalogProducts.length} match${catalogProducts.length === 1 ? '' : 'es'}`
+                  : 'Customer favorites this week'
+              }
+              onSeeAll={
+                catalogProducts.length > 0
+                  ? () => navigateSeeAll(catalogProducts)
+                  : undefined
+              }
+            />
+            <HomeProductRail
+              products={popularProducts}
+              apiBaseUrl={apiBaseUrl}
+              loading={loading && products.length === 0}
+              error={error}
+              emptyTitle={railEmpty.title}
+              emptySubtitle={railEmpty.subtitle}
+              onRetry={() => loadProducts('retry')}
+              onPressProduct={openProductDetail}
+            />
           </View>
-          {productRail}
+
+          {showBrowseSections && !hasCatalogFilters && !loading && catalogProducts.length > 1 ? (
+            <View style={styles.section}>
+              <HomeSectionHeader
+                title="Fresh picks"
+                subtitle="Recently added & seasonal"
+                onSeeAll={() => navigateSeeAll(freshPicks)}
+              />
+              <HomeProductRail
+                products={freshPicks}
+                apiBaseUrl={apiBaseUrl}
+                emptyTitle="More blooms coming soon"
+                emptySubtitle="Pull down to refresh the catalog."
+                onPressProduct={openProductDetail}
+              />
+            </View>
+          ) : null}
+
+          {showBrowseSections ? <HomeTrustStrip /> : null}
         </View>
       </ScrollView>
     </View>
   );
 };
-
-const TILE_SIZE = 132;
 
 const styles = StyleSheet.create({
   screen: {
@@ -312,140 +293,34 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 28,
+    paddingBottom: 32,
   },
   hero: {
     backgroundColor: BRAND.maroonPrimary,
     paddingHorizontal: 16,
     paddingBottom: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  tagline: {
+    fontFamily: FONTS.body,
+    marginTop: 4,
+    fontSize: 13,
+    color: BRAND.headerTextMuted,
+    lineHeight: 18,
   },
   searchSpacing: {
-    marginTop: 14,
+    marginTop: 12,
   },
-  bodyTop: {
+  body: {
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 18,
   },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    marginBottom: 14,
+  section: {
+    marginBottom: 22,
   },
-  sectionTitlePopular: {
-    fontFamily: FONTS.display,
-    fontSize: 20,
-    fontWeight: '700',
-    color: BRAND.productTitle,
-    letterSpacing: -0.3,
-  },
-  seeAll: {
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.maroonPrimary,
-  },
-  railScrollContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingRight: 4,
-    paddingBottom: 4,
-  },
-  railSep: {
-    width: 14,
-  },
-  tilePressed: {
-    opacity: 0.92,
-  },
-  railState: {
-    minHeight: 160,
-    paddingVertical: 28,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileWrap: {
-    width: TILE_SIZE,
-  },
-  tileImageShell: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: BRAND.productTileBg,
-  },
-  tileImage: {
-    width: TILE_SIZE,
-    height: TILE_SIZE,
-    backgroundColor: BRAND.productTileBg,
-  },
-  tileImagePlaceholder: {
-    opacity: 0.85,
-  },
-  tileHeart: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: 14,
-  },
-  lowStockBadge: {
-    position: 'absolute',
-    left: 6,
-    bottom: 6,
-    maxWidth: '90%',
-    backgroundColor: 'rgba(110, 15, 15, 0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  lowStockText: {
-    fontFamily: FONTS.body,
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  tilePrice: {
-    fontFamily: FONTS.body,
-    marginTop: 10,
-    fontSize: 15,
-    fontWeight: '700',
-    color: BRAND.productPriceBold,
-    textAlign: 'center',
-  },
-  stateSubtext: {
-    fontFamily: FONTS.body,
-    marginTop: 10,
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  errorText: {
-    fontFamily: FONTS.body,
-    fontSize: 15,
-    color: '#a40000',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  retryButton: {
-    marginTop: 16,
-    backgroundColor: BRAND.maroonPrimary,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    fontFamily: FONTS.body,
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  emptyTitle: {
-    fontFamily: FONTS.display,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333333',
+  filterSection: {
+    marginBottom: 26,
   },
 });
 

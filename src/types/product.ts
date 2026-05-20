@@ -118,12 +118,29 @@ function pickStock(o: Record<string, unknown>): number | undefined {
 }
 
 function pickCategory(o: Record<string, unknown>): string | undefined {
+  const explicit =
+    readString(o.categoryName) ||
+    readString(o.CategoryName) ||
+    readString(o.categoryLabel) ||
+    readString(o.CategoryLabel);
+  if (explicit) {
+    return explicit;
+  }
+
   const c = o.category ?? o.Category;
   if (typeof c === 'string') {
     return readString(c);
   }
   if (c && typeof c === 'object' && !Array.isArray(c)) {
-    return readString((c as Record<string, unknown>).name);
+    const cat = c as Record<string, unknown>;
+    return (
+      readString(cat.name) ||
+      readString(cat.Name) ||
+      readString(cat.title) ||
+      readString(cat.Title) ||
+      readString(cat.label) ||
+      readString(cat['@id'])
+    );
   }
   return undefined;
 }

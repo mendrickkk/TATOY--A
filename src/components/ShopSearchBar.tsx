@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Keyboard,
   StyleSheet,
   Text,
@@ -11,6 +10,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import {AppAlert} from './app_alert';
 import {BRAND, FONTS} from '../utils';
 import {IconScanner, IconSearch, IconSliders} from './ShopHeaderIcons';
 
@@ -109,7 +109,7 @@ const ShopSearchBar = ({
         ) : null}
         <TouchableOpacity
           onPress={() =>
-            Alert.alert('Scanner', 'Barcode scanning is coming soon.', [{text: 'OK'}])
+            AppAlert.alert('Scanner', 'Barcode scanning is coming soon.')
           }
           hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           accessibilityRole="button"
@@ -120,7 +120,7 @@ const ShopSearchBar = ({
       <TouchableOpacity
         style={styles.filterBtn}
         onPress={() =>
-          Alert.alert('Filters', 'Product filters are coming soon.', [{text: 'OK'}])
+          AppAlert.alert('Filters', 'Product filters are coming soon.')
         }
         accessibilityRole="button"
         accessibilityLabel="Filter products">

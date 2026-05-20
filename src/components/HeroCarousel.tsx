@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  Alert,
   Image,
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -14,14 +13,19 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
+import {AppAlert} from './app_alert';
 import {BRAND, IMG} from '../utils';
 
-const CARD_RADIUS = 24;
-const CARD_IMAGE_UNDERLAY = '#4a0a18';
+const CARD_RADIUS = 18;
+const CARD_IMAGE_UNDERLAY = '#f5f0f8';
 const SLIDE_COUNT = 3;
 const AUTO_ADVANCE_MS = 10_000;
 /** Matches Home `body` horizontal padding (16 + 16) for slide width / paging. */
 const HOME_BODY_GUTTER = 32;
+/** Banner aspect ratio (width ÷ height) — avoids stretching; `cover` trims edges only. */
+const BANNER_ASPECT = 16 / 9;
+const MIN_BANNER_H = 168;
+const MAX_BANNER_H = 220;
 
 const LEGIBLE_SHADOW = {
   textShadowColor: 'rgba(255, 255, 255, 0.92)',
@@ -36,13 +40,13 @@ const HeroCarousel = () => {
   /** Measured carousel width — must match each slide width for `pagingEnabled` to work. */
   const [pagerW, setPagerW] = useState(0);
 
-  const cardHeight = useMemo(() => {
-    const w = Math.max(320, screenW);
-    return Math.min(240, Math.max(214, Math.round(w * 0.36)));
-  }, [screenW]);
-
   const slideW =
     pagerW > 0 ? pagerW : Math.max(1, Math.round(screenW - HOME_BODY_GUTTER));
+
+  const cardHeight = useMemo(() => {
+    const fromAspect = Math.round(slideW / BANNER_ASPECT);
+    return Math.min(MAX_BANNER_H, Math.max(MIN_BANNER_H, fromAspect));
+  }, [slideW]);
 
   const onCardClipLayout = useCallback((e: LayoutChangeEvent) => {
     const w = Math.round(e.nativeEvent.layout.width);
@@ -96,7 +100,7 @@ const HeroCarousel = () => {
         <Text style={styles.sectionTitle}>Special Offers</Text>
         <TouchableOpacity
           onPress={() =>
-            Alert.alert('Special offers', 'Full offers list is coming soon.', [{text: 'OK'}])
+            AppAlert.alert('Special offers', 'Full offers list is coming soon.')
           }
           hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           accessibilityRole="button"
@@ -126,7 +130,7 @@ const HeroCarousel = () => {
               <Image
                 source={IMG.HERO1}
                 style={styles.heroBg}
-                resizeMode="stretch"
+                resizeMode="cover"
                 accessibilityIgnoresInvertColors
               />
               <View style={styles.copyOverlay} pointerEvents="box-none">
@@ -148,7 +152,7 @@ const HeroCarousel = () => {
                   style={styles.cta}
                   activeOpacity={0.88}
                   onPress={() =>
-                    Alert.alert('Order', 'Promo checkout will open here soon.', [{text: 'OK'}])
+                    AppAlert.alert('Order', 'Promo checkout will open here soon.')
                   }
                   accessibilityRole="button"
                   accessibilityLabel="Order now, special offer">
@@ -162,7 +166,7 @@ const HeroCarousel = () => {
               <Image
                 source={IMG.HERO2}
                 style={styles.heroBg}
-                resizeMode="stretch"
+                resizeMode="cover"
                 accessibilityIgnoresInvertColors
               />
             </View>
@@ -172,7 +176,7 @@ const HeroCarousel = () => {
               <Image
                 source={IMG.HERO3}
                 style={styles.heroBg}
-                resizeMode="stretch"
+                resizeMode="cover"
                 accessibilityIgnoresInvertColors
               />
             </View>
@@ -207,19 +211,20 @@ const styles = StyleSheet.create({
   root: {
     width: '100%',
     alignItems: 'stretch',
+    marginBottom: 22,
   },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 14,
     paddingHorizontal: 2,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#18181b',
-    letterSpacing: -0.2,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111111',
+    letterSpacing: -0.3,
   },
   seeAll: {
     fontSize: 14,
@@ -258,8 +263,6 @@ const styles = StyleSheet.create({
   },
   heroBg: {
     ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
   },
   copyOverlay: {
     position: 'absolute',
