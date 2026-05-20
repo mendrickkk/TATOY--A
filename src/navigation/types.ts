@@ -24,6 +24,7 @@ export type HomeStackParamList = {
   [ROUTES.CHECKOUT]: undefined;
   [ROUTES.ORDER_SUCCESS]: {
     orderNumber?: string;
+    orderId?: string;
   };
 };
 

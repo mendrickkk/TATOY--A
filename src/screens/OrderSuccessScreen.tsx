@@ -1,6 +1,14 @@
 import React, {useCallback, useEffect} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {
+  BackHandler,
+  InteractionManager,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {CommonActions, useNavigation, useRoute} from '@react-navigation/native';
 import type {RouteProp} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
@@ -22,50 +30,79 @@ const OrderSuccessScreen = () => {
   const orderNumber = route.params?.orderNumber?.trim();
 
   useEffect(() => {
-    clearCart();
+    const task = InteractionManager.runAfterInteractions(() => {
+      clearCart();
+    });
+    return () => task.cancel();
   }, [clearCart]);
 
+  const resetHomeStackToBrowse = useCallback(() => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{name: ROUTES.HOME}],
+      }),
+    );
+  }, [navigation]);
+
   const goMyOrders = useCallback(() => {
+    resetHomeStackToBrowse();
     const tabNav = navigation.getParent<TabNavProp>();
     if (tabNav) {
       tabNav.navigate(ROUTES.TAB_PROFILE, {screen: ROUTES.MY_ORDERS});
       return;
     }
     navigation.navigate(ROUTES.HOME);
-  }, [navigation]);
+  }, [navigation, resetHomeStackToBrowse]);
 
   const goHome = useCallback(() => {
+    resetHomeStackToBrowse();
     const tabNav = navigation.getParent<TabNavProp>();
     if (tabNav) {
       tabNav.navigate(ROUTES.TAB_HOME, {screen: ROUTES.HOME});
       return;
     }
     navigation.navigate(ROUTES.HOME);
-  }, [navigation]);
+  }, [navigation, resetHomeStackToBrowse]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      goHome();
+      return true;
+    });
+    return () => sub.remove();
+  }, [goHome]);
 
   return (
-    <View style={[styles.screen, {paddingTop: insets.top + 24, paddingBottom: insets.bottom + 20}]}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.content,
+        {paddingBottom: insets.bottom + 24},
+      ]}
+      bounces={false}
+      showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
         <View style={styles.checkCircle}>
           <Text style={styles.checkMark}>✓</Text>
         </View>
         <Text style={styles.title}>Order placed</Text>
-        <Text style={styles.subtitle}>
-          Your order was submitted. Pay on delivery.
-        </Text>
         {orderNumber ? (
           <Text style={styles.orderRef}>Order #{orderNumber}</Text>
         ) : null}
-      </View>
+        <Text style={styles.body}>
+          Thank you for shopping with LaMendrickFlowerShop. You can view your order
+          status in My orders.
+        </Text>
+        <Text style={styles.codLine}>Pay on delivery when your order arrives.</Text>
 
-      <View style={styles.actions}>
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={goMyOrders}
           activeOpacity={0.88}
           accessibilityRole="button"
-          accessibilityLabel="View my orders">
-          <Text style={styles.primaryBtnText}>View my orders</Text>
+          accessibilityLabel="View order">
+          <Text style={styles.primaryBtnText}>View order</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.secondaryBtn}
@@ -76,22 +113,25 @@ const OrderSuccessScreen = () => {
           <Text style={styles.secondaryBtnText}>Continue shopping</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#e8e8e8',
+    backgroundColor: BRAND.pageMutedBg,
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
+    paddingTop: 24,
+    justifyContent: 'center',
   },
   card: {
-    marginTop: 48,
     backgroundColor: '#ffffff',
     borderRadius: 20,
-    paddingVertical: 36,
+    paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
     shadowColor: '#000',
@@ -105,7 +145,8 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     borderWidth: 3,
-    borderColor: '#16a34a',
+    borderColor: BRAND.maroonPrimary,
+    backgroundColor: '#faf5f5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -113,37 +154,44 @@ const styles = StyleSheet.create({
   checkMark: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#16a34a',
+    color: BRAND.maroonPrimary,
     lineHeight: 40,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111111',
+    color: BRAND.productTitle,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  subtitle: {
+  orderRef: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BRAND.maroonPrimary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  body: {
     fontSize: 15,
     lineHeight: 22,
     color: '#9ca3af',
     textAlign: 'center',
+    marginBottom: 10,
   },
-  orderRef: {
-    marginTop: 16,
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.maroonPrimary,
+  codLine: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#9ca3af',
     textAlign: 'center',
-  },
-  actions: {
-    gap: 12,
+    marginBottom: 24,
   },
   primaryBtn: {
+    alignSelf: 'stretch',
     backgroundColor: BRAND.maroonPrimary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
+    marginBottom: 12,
   },
   primaryBtnText: {
     color: '#ffffff',
@@ -151,9 +199,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   secondaryBtn: {
+    alignSelf: 'stretch',
+    backgroundColor: '#ffffff',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d1d5db',
   },
   secondaryBtnText: {
     fontSize: 16,

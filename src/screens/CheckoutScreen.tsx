@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useSelector} from 'react-redux';
@@ -71,7 +71,7 @@ const CheckoutScreen = () => {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const auth = useSelector((state: RootState) => state.auth);
-  const {lines, subtotal, apiBaseUrl, clearCart} = useCart();
+  const {lines, subtotal, apiBaseUrl} = useCart();
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
@@ -86,11 +86,14 @@ const CheckoutScreen = () => {
     [stockIssues],
   );
 
-  useEffect(() => {
-    if (lines.length === 0) {
-      navigation.replace(ROUTES.HOME);
-    }
-  }, [lines.length, navigation]);
+  /** Only while Checkout is focused — avoids racing OrderSuccess clearCart → replace(HOME). */
+  useFocusEffect(
+    useCallback(() => {
+      if (lines.length === 0) {
+        navigation.replace(ROUTES.HOME);
+      }
+    }, [lines.length, navigation]),
+  );
 
   const onPlaceOrder = useCallback(async () => {
     const address = deliveryAddress.trim();
@@ -112,9 +115,9 @@ const CheckoutScreen = () => {
     try {
       const body = cartLinesToOrderRequest(lines, address, notes);
       const {order} = await createOrder(body, getToken);
-      clearCart();
       navigation.replace(ROUTES.ORDER_SUCCESS, {
         orderNumber: order.orderNumber,
+        orderId: order.id,
       });
     } catch (e) {
       if (e instanceof OrderApiError) {
@@ -126,15 +129,7 @@ const CheckoutScreen = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [
-    clearCart,
-    deliveryAddress,
-    getToken,
-    lines,
-    navigation,
-    notes,
-    stockIssueMessages,
-  ]);
+  }, [deliveryAddress, getToken, lines, navigation, notes, stockIssueMessages]);
 
   if (lines.length === 0) {
     return (

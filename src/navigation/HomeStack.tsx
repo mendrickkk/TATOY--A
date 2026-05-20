@@ -52,7 +52,16 @@ const HomeStack = () => {
       <Stack.Screen
         name={ROUTES.ORDER_SUCCESS}
         component={OrderSuccessScreen}
-        options={{headerShown: false, gestureEnabled: false}}
+        options={{
+          title: 'Order confirmed',
+          headerBackVisible: false,
+          gestureEnabled: false,
+          headerTintColor: BRAND.maroonPrimary,
+          headerTitleStyle: {fontWeight: '700', color: BRAND.productTitle},
+          headerTitleAlign: 'center',
+          headerShadowVisible: false,
+          headerStyle: {backgroundColor: BRAND.pageMutedBg},
+        }}
       />
     </Stack.Navigator>
   );
