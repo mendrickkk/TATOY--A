@@ -14,6 +14,13 @@ import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useSelector} from 'react-redux';
 
+import {fetchCategoryLabelMap} from '../app/api/categories';
+import {
+  getProductCategoryLabel,
+  mergeCategoryLabelMaps,
+  mergeCategoryLabelsFromProducts,
+  type CategoryLabelMap,
+} from '../utils/categoryDisplay';
 import {extractBearerJwtFromAuthData, fetchProducts} from '../app/api/products';
 import {isSessionExpiredError} from '../app/api/session';
 import type {RootState} from '../app/reducers';
@@ -31,10 +38,11 @@ import type {MainTabParamList, RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, FONTS, ROUTES} from '../utils';
 import {
+  buildBrowseChips,
   filterHomeCatalog,
-  HOME_OCCASIONS,
   pickFreshPicks,
   pickPopularProducts,
+  productMatchesMerchandisingSection,
 } from '../utils/homeCatalog';
 import {getUserDisplayName} from '../utils/userDisplayName';
 
@@ -52,7 +60,8 @@ const HomeScreen = () => {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [occasionFilter, setOccasionFilter] = useState<string | null>(null);
+  const [chipFilter, setChipFilter] = useState<string | null>(null);
+  const [categoryLabelMap, setCategoryLabelMap] = useState<CategoryLabelMap>({});
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,8 +79,26 @@ const HomeScreen = () => {
       }
       setError(null);
       try {
-        const {products: next, baseUrl} = await fetchProducts(getToken);
+        const [{products: next, baseUrl, categoryLabels: fromProducts}, fromApi] =
+          await Promise.all([fetchProducts(getToken), fetchCategoryLabelMap(getToken)]);
+        const labels = mergeCategoryLabelMaps(fromApi, fromProducts);
+        mergeCategoryLabelsFromProducts(labels, next);
         setProducts(next);
+        setCategoryLabelMap(labels);
+        if (__DEV__) {
+          const fresh = next.filter(p =>
+            productMatchesMerchandisingSection(p, 'fresh-picks', labels),
+          );
+          console.log(
+            '[Home] Fresh picks:',
+            fresh.length,
+            fresh.map(p => ({
+              name: p.name,
+              category: p.category,
+              resolved: getProductCategoryLabel(p, labels),
+            })),
+          );
+        }
         setApiBaseUrl(baseUrl);
         if (baseUrl.trim()) {
           setFavoritesApiBase(baseUrl);
@@ -113,22 +140,42 @@ const HomeScreen = () => {
     }, [loadProducts]),
   );
 
+  const browseChips = useMemo(
+    () => buildBrowseChips(categoryLabelMap),
+    [categoryLabelMap],
+  );
+
   const trimmedSearch = searchQuery.trim();
   const isSearchActive = trimmedSearch.length > 0;
-  const hasCatalogFilters = Boolean(occasionFilter);
+  const hasChipFilter = chipFilter !== null;
+  const hasCatalogFilters = hasChipFilter || isSearchActive;
 
   const catalogProducts = useMemo(
     () =>
       filterHomeCatalog(products, {
         searchQuery,
-        categoryId: null,
-        occasionId: occasionFilter,
+        chipId: chipFilter,
+        categoryLabelMap,
       }),
-    [products, searchQuery, occasionFilter],
+    [products, searchQuery, chipFilter, categoryLabelMap],
   );
 
-  const popularProducts = useMemo(() => pickPopularProducts(catalogProducts), [catalogProducts]);
-  const freshPicks = useMemo(() => pickFreshPicks(catalogProducts), [catalogProducts]);
+  const popularProducts = useMemo(() => {
+    if (hasCatalogFilters) {
+      return catalogProducts;
+    }
+    return pickPopularProducts(products, categoryLabelMap);
+  }, [catalogProducts, categoryLabelMap, hasCatalogFilters, products]);
+
+  const freshPicks = useMemo(
+    () => pickFreshPicks(products, categoryLabelMap),
+    [products, categoryLabelMap],
+  );
+
+  const activeChipLabel = useMemo(
+    () => browseChips.find(c => c.id === chipFilter)?.label,
+    [browseChips, chipFilter],
+  );
 
   const openProductDetail = useCallback(
     (item: Product) => {
@@ -142,14 +189,34 @@ const HomeScreen = () => {
   );
 
   const navigateSeeAll = useCallback(
-    (list: Product[]) => {
+    (
+      list: Product[],
+      sectionFilterId?: 'popular' | 'fresh-picks',
+    ) => {
       navigation.navigate(ROUTES.POPULAR_BOUQUETS, {
         products: list.length > 0 ? list : undefined,
         apiBaseUrl: apiBaseUrl.trim() ? apiBaseUrl : undefined,
+        categoryLabelMap,
         ...(isSearchActive ? {initialSearchQuery: trimmedSearch} : {}),
+        ...(hasChipFilter && chipFilter
+          ? {
+              chipFilterId: chipFilter,
+              chipFilterLabel: activeChipLabel,
+            }
+          : {}),
+        ...(sectionFilterId && !hasChipFilter ? {sectionFilterId} : {}),
       });
     },
-    [apiBaseUrl, isSearchActive, navigation, trimmedSearch],
+    [
+      activeChipLabel,
+      apiBaseUrl,
+      categoryLabelMap,
+      chipFilter,
+      hasChipFilter,
+      isSearchActive,
+      navigation,
+      trimmedSearch,
+    ],
   );
 
   const openMyOrders = useCallback(() => {
@@ -158,15 +225,43 @@ const HomeScreen = () => {
     });
   }, [navigation]);
 
+  const openShop = useCallback(() => {
+    navigation.getParent<TabNavProp>()?.navigate(ROUTES.TAB_SHOP, {screen: ROUTES.SHOP});
+  }, [navigation]);
+
   const railEmpty = useMemo(() => {
     if (isSearchActive) {
       return {title: 'No bouquets found', subtitle: 'Try a different name or clear filters.'};
     }
-    if (hasCatalogFilters) {
-      return {title: 'No matches', subtitle: 'Try another occasion.'};
+    if (hasChipFilter) {
+      return {
+        title: 'No matches',
+        subtitle: 'Try another occasion.',
+      };
     }
-    return {title: 'No products yet', subtitle: 'Check back later or pull down to refresh.'};
-  }, [hasCatalogFilters, isSearchActive]);
+    return {
+      title: 'No popular bouquets yet',
+      subtitle: 'Assign products to the Popular Bouquet category in admin.',
+    };
+  }, [hasChipFilter, isSearchActive]);
+
+  const freshEmpty = useMemo(
+    () => ({
+      title: 'No fresh picks yet',
+      subtitle: 'Assign products to the Fresh Picks category in admin.',
+    }),
+    [],
+  );
+
+  const sectionSubtitle = useMemo(() => {
+    if (isSearchActive) {
+      return `${catalogProducts.length} match${catalogProducts.length === 1 ? '' : 'es'}`;
+    }
+    if (hasChipFilter && activeChipLabel) {
+      return `${catalogProducts.length} match${catalogProducts.length === 1 ? '' : 'es'} · ${activeChipLabel}`;
+    }
+    return 'Customer favorites this week';
+  }, [activeChipLabel, catalogProducts.length, hasChipFilter, isSearchActive]);
 
   const listHeader = useMemo(() => {
     const paddingTop = Math.max(insets.top, 12);
@@ -206,11 +301,13 @@ const HomeScreen = () => {
         {listHeader}
 
         <View style={styles.body}>
-          <HeroCarousel />
+          <HeroCarousel onOrderNow={openShop} />
 
           {showBrowseSections ? (
             <>
               <HomeQuickActions onPressOrders={openMyOrders} />
+
+              <HomePromoBanner />
 
               <View style={[styles.section, styles.filterSection]}>
                 <HomeSectionHeader
@@ -219,14 +316,12 @@ const HomeScreen = () => {
                   compact
                 />
                 <HomeChipScroller
-                  chips={HOME_OCCASIONS}
-                  selectedId={occasionFilter}
-                  onSelect={setOccasionFilter}
+                  chips={browseChips}
+                  selectedId={chipFilter}
+                  onSelect={setChipFilter}
                   topSpacing={10}
                 />
               </View>
-
-              <HomePromoBanner />
             </>
           ) : null}
 
@@ -235,18 +330,18 @@ const HomeScreen = () => {
               title={
                 isSearchActive
                   ? 'Search results'
-                  : hasCatalogFilters
+                  : hasChipFilter
                     ? 'Filtered bouquets'
                     : 'Popular bouquets'
               }
-              subtitle={
-                isSearchActive
-                  ? `${catalogProducts.length} match${catalogProducts.length === 1 ? '' : 'es'}`
-                  : 'Customer favorites this week'
-              }
+              subtitle={sectionSubtitle}
               onSeeAll={
-                catalogProducts.length > 0
-                  ? () => navigateSeeAll(catalogProducts)
+                popularProducts.length > 0
+                  ? () =>
+                      navigateSeeAll(
+                        popularProducts,
+                        hasChipFilter ? undefined : 'popular',
+                      )
                   : undefined
               }
             />
@@ -262,18 +357,22 @@ const HomeScreen = () => {
             />
           </View>
 
-          {showBrowseSections && !hasCatalogFilters && !loading && catalogProducts.length > 1 ? (
+          {showBrowseSections && !hasCatalogFilters && !loading ? (
             <View style={styles.section}>
               <HomeSectionHeader
                 title="Fresh picks"
-                subtitle="Recently added & seasonal"
-                onSeeAll={() => navigateSeeAll(freshPicks)}
+                subtitle="From our Fresh Picks collection"
+                onSeeAll={
+                  freshPicks.length > 0
+                    ? () => navigateSeeAll(freshPicks, 'fresh-picks')
+                    : undefined
+                }
               />
               <HomeProductRail
                 products={freshPicks}
                 apiBaseUrl={apiBaseUrl}
-                emptyTitle="More blooms coming soon"
-                emptySubtitle="Pull down to refresh the catalog."
+                emptyTitle={freshEmpty.title}
+                emptySubtitle={freshEmpty.subtitle}
                 onPressProduct={openProductDetail}
               />
             </View>

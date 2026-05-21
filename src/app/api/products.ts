@@ -4,11 +4,17 @@ import {
   REQUEST_TIMEOUT_MS,
 } from './auth';
 import {failIfAuthenticatedUnauthorized} from './session';
+import {
+  mergeCategoryLabelsFromProductRaw,
+  type CategoryLabelMap,
+} from '../../utils/categoryDisplay';
 import {normalizeUnknownToProduct, type Product} from '../../types/product';
 
 export type FetchProductsResult = {
   products: Product[];
   baseUrl: string;
+  /** Names from embedded `category` objects on product rows (for IRI → label). */
+  categoryLabels: CategoryLabelMap;
 };
 
 function stringish(value: unknown): string | undefined {
@@ -291,7 +297,9 @@ export async function fetchProducts(
     if (response.ok) {
       const items = extractCollectionItems(data);
       const products: Product[] = [];
+      const categoryLabels: CategoryLabelMap = {};
       for (const item of items) {
+        mergeCategoryLabelsFromProductRaw(categoryLabels, item);
         const p = normalizeUnknownToProduct(item);
         if (p) {
           products.push(p);
@@ -300,13 +308,9 @@ export async function fetchProducts(
       if (__DEV__ && items.length > 0 && typeof items[0] === 'object' && items[0] !== null) {
         const raw = items[0] as Record<string, unknown>;
         console.log('[fetchProducts] first item keys:', Object.keys(raw));
-        console.log('[fetchProducts] first item image-related:', {
-          image: raw.image,
-          Image: raw.Image,
-          media: raw.media,
-        });
+        console.log('[fetchProducts] category:', raw.category ?? raw.Category);
       }
-      return {products, baseUrl};
+      return {products, baseUrl, categoryLabels};
     }
 
     failIfAuthenticatedUnauthorized(

@@ -9,6 +9,7 @@ import {
   IconTabFavorite,
   IconTabHome,
   IconTabProfile,
+  IconTabShop,
 } from '../components/TabBarIcons';
 import {useCart} from '../context/CartContext';
 import CartScreen from '../screens/CartScreen';
@@ -16,6 +17,7 @@ import FavoriteScreen from '../screens/FavoriteScreen';
 import {BRAND, FONTS, ROUTES} from '../utils';
 import HomeStack from './HomeStack';
 import ProfileStack from './ProfileStack';
+import ShopStack from './ShopStack';
 import type {MainTabParamList} from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -70,6 +72,16 @@ const MainTabs = () => {
           tabBarLabel: 'Home',
           tabBarIcon: ({focused, color, size}) => (
             <TabBarIcon focused={focused} color={color} size={size} Icon={IconTabHome} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name={ROUTES.TAB_SHOP}
+        component={ShopStack}
+        options={{
+          tabBarLabel: 'Shop',
+          tabBarIcon: ({focused, color, size}) => (
+            <TabBarIcon focused={focused} color={color} size={size} Icon={IconTabShop} />
           ),
         }}
       />

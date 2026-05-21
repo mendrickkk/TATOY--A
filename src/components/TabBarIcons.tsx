@@ -77,6 +77,66 @@ function heartIconStyles(size: number, color: string) {
   return {root, left, right, tip};
 }
 
+function shopIconStyles(size: number, color: string) {
+  const root: ViewStyle = {width: size, height: size, alignItems: 'center', justifyContent: 'center'};
+  const awning: ViewStyle = {
+    position: 'absolute',
+    top: size * 0.04,
+    width: size * 0.82,
+    height: size * 0.22,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderColor: color,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  };
+  const stripe: ViewStyle = {
+    position: 'absolute',
+    top: size * 0.1,
+    left: size * 0.38,
+    width: 2,
+    height: size * 0.12,
+    backgroundColor: color,
+  };
+  const facade: ViewStyle = {
+    marginTop: size * 0.2,
+    width: size * 0.72,
+    height: size * 0.58,
+    borderWidth: 2,
+    borderColor: color,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 2,
+    borderBottomRightRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: size * 0.1,
+  };
+  const door: ViewStyle = {
+    width: size * 0.28,
+    height: size * 0.3,
+    borderWidth: 2,
+    borderColor: color,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 2,
+    borderBottomRightRadius: 2,
+  };
+  return {root, awning, stripe, facade, door};
+}
+
+export function IconTabShop({color, size = 24}: IconProps) {
+  const s = shopIconStyles(size, color);
+  return (
+    <View style={s.root}>
+      <View style={s.awning} />
+      <View style={s.stripe} />
+      <View style={s.facade}>
+        <View style={s.door} />
+      </View>
+    </View>
+  );
+}
+
 export function IconTabFavorite({color, size = 24}: IconProps) {
   const s = heartIconStyles(size, color);
   return (

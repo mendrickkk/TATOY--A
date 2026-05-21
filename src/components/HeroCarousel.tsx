@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Image,
+  ImageSourcePropType,
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -22,10 +23,16 @@ const SLIDE_COUNT = 3;
 const AUTO_ADVANCE_MS = 10_000;
 /** Matches Home `body` horizontal padding (16 + 16) for slide width / paging. */
 const HOME_BODY_GUTTER = 32;
-/** Banner aspect ratio (width ÷ height) — avoids stretching; `cover` trims edges only. */
-const BANNER_ASPECT = 16 / 9;
 const MIN_BANNER_H = 168;
-const MAX_BANNER_H = 220;
+const HERO_SOURCES: ImageSourcePropType[] = [IMG.HERO1, IMG.HERO2, IMG.HERO3];
+
+function naturalBannerHeight(source: ImageSourcePropType, width: number): number | null {
+  const resolved = Image.resolveAssetSource(source);
+  if (!resolved?.width || !resolved?.height) {
+    return null;
+  }
+  return Math.round((width * resolved.height) / resolved.width);
+}
 
 const LEGIBLE_SHADOW = {
   textShadowColor: 'rgba(255, 255, 255, 0.92)',
@@ -33,7 +40,11 @@ const LEGIBLE_SHADOW = {
   textShadowRadius: 8,
 };
 
-const HeroCarousel = () => {
+type HeroCarouselProps = {
+  onOrderNow?: () => void;
+};
+
+const HeroCarousel = ({onOrderNow}: HeroCarouselProps) => {
   const {width: screenW} = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -44,8 +55,13 @@ const HeroCarousel = () => {
     pagerW > 0 ? pagerW : Math.max(1, Math.round(screenW - HOME_BODY_GUTTER));
 
   const cardHeight = useMemo(() => {
-    const fromAspect = Math.round(slideW / BANNER_ASPECT);
-    return Math.min(MAX_BANNER_H, Math.max(MIN_BANNER_H, fromAspect));
+    const heights = HERO_SOURCES.map(src => naturalBannerHeight(src, slideW)).filter(
+      (h): h is number => h != null && h > 0,
+    );
+    if (!heights.length) {
+      return MIN_BANNER_H;
+    }
+    return Math.max(MIN_BANNER_H, Math.max(...heights));
   }, [slideW]);
 
   const onCardClipLayout = useCallback((e: LayoutChangeEvent) => {
@@ -130,7 +146,7 @@ const HeroCarousel = () => {
               <Image
                 source={IMG.HERO1}
                 style={styles.heroBg}
-                resizeMode="cover"
+                resizeMode="contain"
                 accessibilityIgnoresInvertColors
               />
               <View style={styles.copyOverlay} pointerEvents="box-none">
@@ -151,11 +167,9 @@ const HeroCarousel = () => {
                 <TouchableOpacity
                   style={styles.cta}
                   activeOpacity={0.88}
-                  onPress={() =>
-                    AppAlert.alert('Order', 'Promo checkout will open here soon.')
-                  }
+                  onPress={() => onOrderNow?.()}
                   accessibilityRole="button"
-                  accessibilityLabel="Order now, special offer">
+                  accessibilityLabel="Order now, go to shop">
                   <Text style={styles.ctaText}>Order Now</Text>
                 </TouchableOpacity>
               </View>
@@ -166,7 +180,7 @@ const HeroCarousel = () => {
               <Image
                 source={IMG.HERO2}
                 style={styles.heroBg}
-                resizeMode="cover"
+                resizeMode="contain"
                 accessibilityIgnoresInvertColors
               />
             </View>
@@ -176,7 +190,7 @@ const HeroCarousel = () => {
               <Image
                 source={IMG.HERO3}
                 style={styles.heroBg}
-                resizeMode="cover"
+                resizeMode="contain"
                 accessibilityIgnoresInvertColors
               />
             </View>
@@ -262,7 +276,8 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_IMAGE_UNDERLAY,
   },
   heroBg: {
-    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   copyOverlay: {
     position: 'absolute',

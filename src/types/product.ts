@@ -128,19 +128,28 @@ function pickCategory(o: Record<string, unknown>): string | undefined {
   }
 
   const c = o.category ?? o.Category;
+  if (typeof c === 'number' && Number.isFinite(c)) {
+    return `/api/categories/${c}`;
+  }
   if (typeof c === 'string') {
     return readString(c);
   }
   if (c && typeof c === 'object' && !Array.isArray(c)) {
     const cat = c as Record<string, unknown>;
-    return (
+    const name =
       readString(cat.name) ||
       readString(cat.Name) ||
       readString(cat.title) ||
       readString(cat.Title) ||
       readString(cat.label) ||
-      readString(cat['@id'])
-    );
+      readString(cat.Label);
+    if (name) {
+      return name;
+    }
+    if (typeof cat.id === 'number' && Number.isFinite(cat.id)) {
+      return `/api/categories/${cat.id}`;
+    }
+    return readString(cat['@id']) || readString(cat.id);
   }
   return undefined;
 }

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,6 +17,7 @@ import type {RouteProp} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useSelector} from 'react-redux';
 
+import {fetchCategoryLabelMap} from '../app/api/categories';
 import {extractBearerJwtFromAuthData, fetchProducts, getProductImageUri} from '../app/api/products';
 import type {RootState} from '../app/reducers';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
@@ -24,7 +25,17 @@ import {useFavorites} from '../context/FavoritesContext';
 import type {RootStackParamList} from '../navigation/types';
 import type {Product} from '../types/product';
 import {BRAND, ROUTES} from '../utils';
-import {filterProductsByQuery} from '../utils/productSearch';
+import {
+  mergeCategoryLabelMaps,
+  mergeCategoryLabelsFromProducts,
+  type CategoryLabelMap,
+} from '../utils/categoryDisplay';
+import {
+  filterHomeCatalog,
+  merchandisingCatalogTitle,
+  occasionCatalogTitle,
+  productMatchesMerchandisingSection,
+} from '../utils/homeCatalog';
 
 const H_PAD = 16;
 const COL_GAP = 12;
@@ -48,8 +59,14 @@ const PopularBouquetsScreen = () => {
   const initialProducts = route.params?.products;
   const initialBase = route.params?.apiBaseUrl?.trim() ?? '';
   const initialSearchQuery = route.params?.initialSearchQuery?.trim() ?? '';
+  const chipFilterId = route.params?.chipFilterId ?? null;
+  const chipFilterLabel = route.params?.chipFilterLabel;
+  const sectionFilterId = route.params?.sectionFilterId;
+  const initialCategoryLabelMap = route.params?.categoryLabelMap ?? {};
 
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
+  const [categoryLabelMap, setCategoryLabelMap] =
+    useState<CategoryLabelMap>(initialCategoryLabelMap);
   const [apiBaseUrl, setApiBaseUrl] = useState(initialBase);
   const [loading, setLoading] = useState(!initialProducts?.length);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,10 +77,42 @@ const PopularBouquetsScreen = () => {
     [windowW],
   );
 
-  const displayProducts = useMemo(
-    () => filterProductsByQuery(products, initialSearchQuery),
-    [products, initialSearchQuery],
-  );
+  const displayProducts = useMemo(() => {
+    let list = filterHomeCatalog(products, {
+      searchQuery: initialSearchQuery,
+      chipId: chipFilterId,
+      categoryLabelMap,
+    });
+    if (sectionFilterId && !chipFilterId) {
+      list = list.filter(p =>
+        productMatchesMerchandisingSection(p, sectionFilterId, categoryLabelMap),
+      );
+    }
+    return list;
+  }, [
+    products,
+    initialSearchQuery,
+    chipFilterId,
+    sectionFilterId,
+    categoryLabelMap,
+  ]);
+
+  const screenTitle = useMemo(() => {
+    if (chipFilterId) {
+      return occasionCatalogTitle(chipFilterId, chipFilterLabel);
+    }
+    if (initialSearchQuery) {
+      return 'Search results';
+    }
+    if (sectionFilterId) {
+      return merchandisingCatalogTitle(sectionFilterId);
+    }
+    return 'Popular bouquets';
+  }, [chipFilterId, chipFilterLabel, initialSearchQuery, sectionFilterId]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({title: screenTitle});
+  }, [navigation, screenTitle]);
 
   const getToken = useCallback(() => extractBearerJwtFromAuthData(auth.data), [auth.data]);
 
@@ -76,8 +125,12 @@ const PopularBouquetsScreen = () => {
       }
       setError(null);
       try {
-        const {products: next, baseUrl} = await fetchProducts(getToken);
+        const [{products: next, baseUrl, categoryLabels: fromProducts}, fromApi] =
+          await Promise.all([fetchProducts(getToken), fetchCategoryLabelMap(getToken)]);
+        const labels = mergeCategoryLabelMaps(fromApi, fromProducts);
+        mergeCategoryLabelsFromProducts(labels, next);
         setProducts(next);
+        setCategoryLabelMap(labels);
         setApiBaseUrl(baseUrl);
         if (baseUrl.trim()) {
           setFavoritesApiBase(baseUrl);
@@ -116,10 +169,10 @@ const PopularBouquetsScreen = () => {
       navigation.navigate(ROUTES.PRODUCT_DETAIL, {
         product: item,
         apiBaseUrl,
-        relatedProducts: products,
+        relatedProducts: displayProducts,
       });
     },
-    [apiBaseUrl, navigation, products],
+    [apiBaseUrl, displayProducts, navigation],
   );
 
   const renderItem = useCallback(
@@ -152,12 +205,40 @@ const PopularBouquetsScreen = () => {
               style={styles.tileHeart}
             />
           </View>
+          <Text style={styles.name} numberOfLines={2}>
+            {item.name}
+          </Text>
           <Text style={styles.price}>{priceFormatter.format(item.price)}</Text>
         </Pressable>
       );
     },
     [apiBaseUrl, cellW, openDetail],
   );
+
+  const emptyMessage = useMemo(() => {
+    if (initialSearchQuery) {
+      return {title: 'No bouquets found', hint: 'Try a different name'};
+    }
+    if (chipFilterId) {
+      return {
+        title: `No ${chipFilterLabel ?? 'matching'} bouquets`,
+        hint: 'Try another occasion on Home or pull down to refresh.',
+      };
+    }
+    if (sectionFilterId === 'fresh-picks') {
+      return {
+        title: 'No fresh picks yet',
+        hint: 'Assign products to the Fresh Picks category in admin.',
+      };
+    }
+    if (sectionFilterId === 'popular') {
+      return {
+        title: 'No popular bouquets yet',
+        hint: 'Assign products to the Popular Bouquet category in admin.',
+      };
+    }
+    return {title: 'No bouquets to show', hint: 'Pull down to refresh.'};
+  }, [chipFilterId, chipFilterLabel, initialSearchQuery, sectionFilterId]);
 
   if (loading && displayProducts.length === 0 && products.length === 0) {
     return (
@@ -198,14 +279,8 @@ const PopularBouquetsScreen = () => {
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            {initialSearchQuery ? (
-              <>
-                <Text style={styles.emptyTitle}>No bouquets found</Text>
-                <Text style={styles.hint}>Try a different name</Text>
-              </>
-            ) : (
-              <Text style={styles.hint}>No bouquets to show.</Text>
-            )}
+            <Text style={styles.emptyTitle}>{emptyMessage.title}</Text>
+            <Text style={styles.hint}>{emptyMessage.hint}</Text>
           </View>
         }
       />
@@ -248,8 +323,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderRadius: 14,
   },
+  name: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: BRAND.productTitle,
+    textAlign: 'center',
+    lineHeight: 17,
+    paddingHorizontal: 4,
+  },
   price: {
-    marginTop: 10,
+    marginTop: 4,
     fontSize: 15,
     fontWeight: '700',
     color: BRAND.productPriceBold,
